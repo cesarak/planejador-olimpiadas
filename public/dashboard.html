@@ -1,0 +1,1858 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Planejador Olimpiadas - Dashboard</title>
+    <style>
+      :root {
+        --bg: #0f1220;
+        --card: #171a2b;
+        --muted: #a8b0d3;
+        --text: #f2f4ff;
+        --primary: #5b7cff;
+        --danger: #ff5f7b;
+        --ok: #25c48f;
+        --border: #2b3252;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
+          Helvetica, Arial, sans-serif;
+        background: linear-gradient(180deg, #0f1220 0%, #0b0e1a 100%);
+        color: var(--text);
+      }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      h1,
+      h2 {
+        margin: 0 0 12px;
+      }
+      h1 {
+        font-size: 28px;
+      }
+      h2 {
+        font-size: 20px;
+        color: #d9ddff;
+      }
+      .sub {
+        color: var(--muted);
+        margin-bottom: 20px;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 16px;
+      }
+      .row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+      }
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        min-width: 150px;
+        flex: 1;
+      }
+      label {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      input,
+      select,
+      textarea,
+      button {
+        border: 1px solid var(--border);
+        background: #101428;
+        color: var(--text);
+        border-radius: 8px;
+        padding: 8px 10px;
+        font-size: 14px;
+      }
+      textarea {
+        min-height: 120px;
+        resize: vertical;
+      }
+      select[multiple] {
+        min-height: 96px;
+      }
+      button {
+        cursor: pointer;
+      }
+      button.primary {
+        background: var(--primary);
+        border-color: var(--primary);
+      }
+      button.danger {
+        background: transparent;
+        border-color: var(--danger);
+        color: var(--danger);
+      }
+      button.ok {
+        background: var(--ok);
+        border-color: var(--ok);
+        color: #062017;
+      }
+      .table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .table th,
+      .table td {
+        border-bottom: 1px solid var(--border);
+        padding: 8px;
+        text-align: left;
+        vertical-align: top;
+      }
+      .table th {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .table.compact th,
+      .table.compact td {
+        padding: 6px 8px;
+        font-size: 12px;
+      }
+      .table.compact {
+        border-collapse: separate;
+        border-spacing: 0;
+        table-layout: fixed;
+      }
+      .table.compact thead th {
+        position: sticky;
+        top: 0;
+        background: #111735;
+        z-index: 2;
+      }
+      .table.compact th:first-child,
+      .table.compact td:first-child {
+        width: 128px;
+        background: #101632;
+      }
+      .table.compact td {
+        height: 34px;
+      }
+      .small {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .kpis {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 10px;
+      }
+      .kpi {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px;
+        background: #101428;
+      }
+      .kpi .label {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .kpi .value {
+        font-size: 20px;
+        font-weight: 700;
+        margin-top: 4px;
+      }
+      .occupancy-alert {
+        margin-top: 10px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.06);
+        color: #e5e9ff;
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-size: 13px;
+      }
+      .occupancy-alert.hidden {
+        display: none;
+      }
+      .occupancy-alert.level-excelente {
+        border-color: #25c48f;
+        background: rgba(37, 196, 143, 0.14);
+        color: #c8ffe9;
+      }
+      .occupancy-alert.level-boa {
+        border-color: #5b7cff;
+        background: rgba(91, 124, 255, 0.14);
+        color: #d6e0ff;
+      }
+      .occupancy-alert.level-atencao {
+        border-color: #d2a84c;
+        background: rgba(210, 168, 76, 0.14);
+        color: #f9dd9a;
+      }
+      .occupancy-alert.level-critica {
+        border-color: #ff5f7b;
+        background: rgba(255, 95, 123, 0.14);
+        color: #ffd8df;
+      }
+      .critical-alert {
+        margin-top: 10px;
+        border: 1px solid #ff5f7b;
+        background: rgba(255, 95, 123, 0.16);
+        color: #ffd8df;
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .critical-alert.hidden {
+        display: none;
+      }
+      .bracket-group {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px;
+        margin-bottom: 10px;
+        background: #101428;
+      }
+      .bracket-title {
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+      .bracket-layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .bracket-box {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 8px;
+        background: #0f1430;
+      }
+      .bracket-box h4 {
+        margin: 0 0 6px;
+        font-size: 13px;
+        color: #d6ddff;
+      }
+      .bracket-list {
+        margin: 0;
+        padding-left: 16px;
+      }
+      .bracket-list li {
+        margin-bottom: 4px;
+      }
+      pre {
+        margin: 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+        background: #0d1122;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px;
+      }
+      .day-grid {
+        margin-bottom: 16px;
+      }
+      .cell-vazio {
+        color: #7880a5;
+      }
+      .cell-bloqueado {
+        background: rgba(255, 95, 123, 0.2);
+        border: 1px solid rgba(255, 95, 123, 0.45);
+        border-radius: 6px;
+        padding: 4px;
+      }
+      .cell-confronto {
+        background: rgba(37, 196, 143, 0.18);
+        border: 1px solid rgba(37, 196, 143, 0.45);
+        border-radius: 6px;
+        padding: 4px;
+      }
+      .cell-continua {
+        color: #9fb6ff;
+      }
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+      .legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 4px 10px;
+        font-size: 12px;
+      }
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        display: inline-block;
+      }
+      .day-tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+      .day-tab {
+        border: 1px solid var(--border);
+        background: #0f1530;
+        color: var(--text);
+        border-radius: 999px;
+        padding: 6px 12px;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      .day-tab.active {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: white;
+      }
+      .dot-vazio {
+        background: #7880a5;
+      }
+      .dot-bloqueado {
+        background: #ff5f7b;
+      }
+      .dot-confronto {
+        background: #25c48f;
+      }
+      .dot-continua {
+        background: #9fb6ff;
+      }
+      td.merged-confronto {
+        background: linear-gradient(
+          180deg,
+          rgba(37, 196, 143, 0.26),
+          rgba(37, 196, 143, 0.2)
+        );
+        border: 1px solid rgba(37, 196, 143, 0.45);
+        vertical-align: top;
+        box-shadow: inset 0 0 0 1px rgba(37, 196, 143, 0.12);
+        border-radius: 14px;
+        overflow: hidden;
+      }
+      td.merged-bloqueado {
+        background: linear-gradient(
+          180deg,
+          rgba(255, 95, 123, 0.28),
+          rgba(255, 95, 123, 0.2)
+        );
+        border: 1px solid rgba(255, 95, 123, 0.45);
+        vertical-align: top;
+        box-shadow: inset 0 0 0 1px rgba(255, 95, 123, 0.12);
+        border-radius: 14px;
+        overflow: hidden;
+      }
+      td.merged-vazio {
+        color: #7880a5;
+      }
+      .merged-content {
+        padding: 6px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .merged-title {
+        font-weight: 700;
+        line-height: 1.1;
+      }
+      .merged-meta {
+        display: inline-block;
+        width: fit-content;
+        padding: 2px 6px;
+        border-radius: 999px;
+        font-size: 11px;
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+      .merged-vs {
+        color: #d8f8ec;
+      }
+      .merged-blocked {
+        color: #ffe0e7;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Dashboard de Agendamento (JIM)</h1>
+      <p class="sub">
+        Cadastre os dados da competicao e gere o cronograma automaticamente.
+      </p>
+
+      <div class="card">
+        <h2>Competicao</h2>
+        <div class="row">
+          <div class="field">
+            <label for="inicio_min">Inicio</label>
+            <input id="inicio_min" type="time" value="08:00" />
+          </div>
+          <div class="field">
+            <label for="fim_min">Fim</label>
+            <input id="fim_min" type="time" value="12:00" />
+          </div>
+          <div class="field">
+            <label for="passo_grid">Passo do grid</label>
+            <input id="passo_grid" type="number" value="5" />
+          </div>
+          <div class="field">
+            <label for="data_inicio">Data de inicio</label>
+            <input
+              id="data_inicio"
+              type="date"
+              value="2026-03-12"
+              onchange="updateDaysPreview()"
+            />
+          </div>
+          <div class="field">
+            <label for="data_fim">Data de termino</label>
+            <input
+              id="data_fim"
+              type="date"
+              value="2026-03-12"
+              onchange="updateDaysPreview()"
+            />
+          </div>
+          <div class="field" style="min-width: 220px">
+            <label>Datas da Competição</label>
+            <div id="dias_preview" class="small">1 dia selecionado.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Parametros de Agendamento</h2>
+        <div class="row">
+          <div class="field">
+            <label for="descanso_minimo">Descanso minimo</label>
+            <input id="descanso_minimo" type="number" value="0" />
+          </div>
+          <div class="field">
+            <label for="modo_encaixe">Modo encaixe</label>
+            <select id="modo_encaixe">
+              <option value="arredondar_cima">arredondar_cima</option>
+              <option value="exato">exato</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="modo_ordem">Modo ordem</label>
+            <select id="modo_ordem">
+              <option value="dificil_primeiro">dificil_primeiro</option>
+              <option value="curtos_primeiro">curtos_primeiro</option>
+              <option value="longos_primeiro">longos_primeiro</option>
+              <option value="agrupar_categoria">agrupar_categoria</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Times</h2>
+        <table class="table" id="teams_table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nome</th>
+              <th>Categoria</th>
+              <th>Genero</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div class="actions" style="margin-top: 10px">
+          <button type="button" onclick="addTeam()">Adicionar Time</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Modalidades</h2>
+        <table class="table" id="modalidades_table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nome</th>
+              <th>Duracao (min)</th>
+              <th>Regra genero</th>
+              <th>Formato padrao</th>
+              <th>Categorias (para este formato)</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div class="actions" style="margin-top: 10px">
+          <button type="button" onclick="addModality()">
+            Adicionar Modalidade
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Quadras / Locais</h2>
+        <p class="small">
+          Use <code>*</code> para aceitar tudo. Para lista, use CSV (ex:
+          mod-1,mod-2).
+        </p>
+        <table class="table" id="locais_table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nome</th>
+              <th>Modalidades permitidas</th>
+              <th>Categorias permitidas</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div class="actions" style="margin-top: 10px">
+          <button type="button" onclick="addLocal()">Adicionar Quadra</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Bloqueios</h2>
+        <table class="table" id="bloqueios_table">
+          <thead>
+            <tr>
+              <th>Dia</th>
+              <th>Inicio</th>
+              <th>Fim</th>
+              <th>Motivo</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div class="actions" style="margin-top: 10px">
+          <button type="button" onclick="addBlock()">Adicionar Bloqueio</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Persistencia (opcional)</h2>
+        <div class="row">
+          <div class="field" style="max-width: 220px">
+            <label for="salvar">Salvar no banco</label>
+            <select id="salvar">
+              <option value="false">false</option>
+              <option value="true">true</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="tenantId">tenantId</label>
+            <input
+              id="tenantId"
+              type="text"
+              placeholder="Obrigatorio se salvar=true"
+            />
+          </div>
+          <div class="field">
+            <label for="competitionId">competitionId</label>
+            <input
+              id="competitionId"
+              type="text"
+              placeholder="Obrigatorio se salvar=true"
+            />
+          </div>
+          <div class="field">
+            <label for="nomeVersao">nomeVersao</label>
+            <input id="nomeVersao" type="text" />
+          </div>
+          <div class="field">
+            <label for="createdBy">createdBy</label>
+            <input id="createdBy" type="text" />
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="actions">
+          <button type="button" onclick="saveDraft()">
+            Salvar rascunho local
+          </button>
+          <button type="button" onclick="loadDraft()">
+            Carregar rascunho local
+          </button>
+          <button type="button" class="danger" onclick="clearDraft()">
+            Limpar rascunho
+          </button>
+          <button type="button" class="primary" onclick="generate()">
+            Gerar Cronograma
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>KPIs</h2>
+        <div class="kpis" id="kpis"></div>
+        <div id="critical_alert" class="critical-alert hidden"></div>
+        <div id="occupancy_alert" class="occupancy-alert hidden"></div>
+      </div>
+
+      <div class="card">
+        <h2>Chaves e Mata-Mata</h2>
+        <div class="actions" style="margin-bottom: 10px">
+          <button type="button" onclick="printBrackets()">
+            Imprimir Chaves
+          </button>
+        </div>
+        <div id="bracket_container" class="small">
+          Nenhuma estrutura eliminatoria gerada.
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Grade Visual</h2>
+        <p class="small">Tabela por dia com horarios e quadras.</p>
+        <div class="actions" style="margin-bottom: 10px">
+          <div class="field" style="min-width: 240px; max-width: 360px">
+            <label for="grade_court_filter">Filtrar quadra</label>
+            <select
+              id="grade_court_filter"
+              onchange="renderGrade(lastRenderedGrade)"
+            >
+              <option value="">Todas as quadras</option>
+            </select>
+          </div>
+          <div class="field" style="min-width: 240px; max-width: 420px">
+            <label for="grade_search">Buscar por time/modalidade</label>
+            <input
+              id="grade_search"
+              type="text"
+              placeholder="Ex: time A, futsal..."
+              oninput="renderGrade(lastRenderedGrade)"
+            />
+          </div>
+          <button type="button" onclick="exportGradeCsv()">Exportar CSV</button>
+          <button type="button" onclick="exportGradePdf()">Exportar PDF</button>
+        </div>
+        <div class="legend">
+          <span class="legend-item"
+            ><span class="dot dot-vazio"></span>Vazio</span
+          >
+          <span class="legend-item"
+            ><span class="dot dot-bloqueado"></span>Bloqueado</span
+          >
+          <span class="legend-item"
+            ><span class="dot dot-confronto"></span>Confronto</span
+          >
+          <span class="legend-item"
+            ><span class="dot dot-continua"></span>Continua</span
+          >
+        </div>
+        <div id="grade_tabs" class="day-tabs"></div>
+        <div id="grade_container" class="small">
+          Ainda sem dados. Gere o cronograma para visualizar.
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Resposta JSON</h2>
+        <pre id="response_json">{}</pre>
+      </div>
+    </div>
+
+    <script>
+      const STORAGE_KEY = "jim_dashboard_v1";
+      let lastRenderedGrade = [];
+      let selectedGradeDayTab = "";
+      let lastScheduleResult = null;
+
+      function randomId(prefix) {
+        return prefix + "-" + Math.random().toString(36).slice(2, 8);
+      }
+
+      function csvToArrayOrStar(value) {
+        const v = (value || "").trim();
+        if (!v || v === "*") return "*";
+        return v
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean);
+      }
+
+      function arrayOrStarToCsv(value) {
+        if (value === "*" || value == null) return "*";
+        return Array.isArray(value) ? value.join(",") : String(value);
+      }
+
+      function removeRowAndRefresh(button, shouldRefreshCategories) {
+        const row = button.closest("tr");
+        if (row) {
+          row.remove();
+        }
+        if (shouldRefreshCategories) {
+          updateModalityCategorySelectors();
+        }
+      }
+
+      function getUniqueTeamCategories() {
+        const categories = new Set();
+        document
+          .querySelectorAll("#teams_table tbody tr [data-k='categoria']")
+          .forEach((input) => {
+            const value = input.value.trim();
+            if (value) {
+              categories.add(value);
+            }
+          });
+        return [...categories].sort((a, b) => a.localeCompare(b, "pt-BR"));
+      }
+
+      function getSelectedMultiValues(select) {
+        return Array.from(select.selectedOptions).map((option) => option.value);
+      }
+
+      function updateModalityCategorySelectors() {
+        const categories = getUniqueTeamCategories();
+        document
+          .querySelectorAll(
+            "#modalidades_table tbody tr select[data-k='categorias']"
+          )
+          .forEach((select) => {
+            const previousSelection = new Set(getSelectedMultiValues(select));
+            select.innerHTML = categories
+              .map((category) => {
+                const selected = previousSelection.has(category)
+                  ? "selected"
+                  : "";
+                return `<option value="${category}" ${selected}>${category}</option>`;
+              })
+              .join("");
+          });
+      }
+
+      function addTeam(data = {}) {
+        const tbody = document.querySelector("#teams_table tbody");
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><input data-k="id" value="${data.id || randomId("team")}" /></td>
+          <td><input data-k="nome" value="${data.nome || ""}" /></td>
+          <td><input data-k="categoria" value="${data.categoria || ""}" /></td>
+          <td>
+            <select data-k="genero">
+              <option value="M" ${
+                data.genero === "M" ? "selected" : ""
+              }>M</option>
+              <option value="F" ${
+                data.genero === "F" ? "selected" : ""
+              }>F</option>
+              <option value="X" ${
+                data.genero === "X" ? "selected" : ""
+              }>X</option>
+            </select>
+          </td>
+          <td><button type="button" class="danger" onclick="removeRowAndRefresh(this, true)">Remover</button></td>
+        `;
+        tbody.appendChild(tr);
+        const categoryInput = tr.querySelector("[data-k='categoria']");
+        categoryInput.addEventListener(
+          "input",
+          updateModalityCategorySelectors
+        );
+        updateModalityCategorySelectors();
+      }
+
+      function addModality(data = {}) {
+        const tbody = document.querySelector("#modalidades_table tbody");
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><input data-k="id" value="${data.id || randomId("mod")}" /></td>
+          <td><input data-k="nome" value="${data.nome || ""}" /></td>
+          <td><input data-k="duracao_min" type="number" value="${
+            data.duracao_min || 20
+          }" /></td>
+          <td>
+            <select data-k="regra_genero">
+              <option value="misto" ${
+                data.regra_genero === "misto" ? "selected" : ""
+              }>misto</option>
+              <option value="separado" ${
+                data.regra_genero === "separado" ? "selected" : ""
+              }>separado</option>
+            </select>
+          </td>
+          <td>
+            <select data-k="formato">
+              <option value="todos_contra_todos" ${
+                (data.formato || "todos_contra_todos") === "todos_contra_todos"
+                  ? "selected"
+                  : ""
+              }>todos_contra_todos</option>
+              <option value="eliminatoria" ${
+                data.formato === "eliminatoria" ? "selected" : ""
+              }>eliminatoria</option>
+            </select>
+          </td>
+          <td>
+            <select data-k="categorias" multiple></select>
+          </td>
+          <td><button type="button" class="danger" onclick="removeRowAndRefresh(this, false)">Remover</button></td>
+        `;
+        tbody.appendChild(tr);
+        updateModalityCategorySelectors();
+        const multi = tr.querySelector("[data-k='categorias']");
+        const selected = new Set(
+          data.categorias || data.categorias_eliminatoria || []
+        );
+        Array.from(multi.options).forEach((option) => {
+          option.selected = selected.has(option.value);
+        });
+      }
+
+      function addLocal(data = {}) {
+        const tbody = document.querySelector("#locais_table tbody");
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><input data-k="id" value="${data.id || randomId("local")}" /></td>
+          <td><input data-k="nome" value="${data.nome || ""}" /></td>
+          <td><input data-k="modalidades_permitidas" value="${arrayOrStarToCsv(
+            data.modalidades_permitidas || "*"
+          )}" /></td>
+          <td><input data-k="categorias_permitidas" value="${arrayOrStarToCsv(
+            data.categorias_permitidas || "*"
+          )}" /></td>
+          <td><button type="button" class="danger" onclick="this.closest('tr').remove()">Remover</button></td>
+        `;
+        tbody.appendChild(tr);
+      }
+
+      function addBlock(data = {}) {
+        const tbody = document.querySelector("#bloqueios_table tbody");
+        const inicioValue =
+          typeof data.inicio === "number"
+            ? minutesToInputTime(data.inicio)
+            : data.inicio || "09:50";
+        const fimValue =
+          typeof data.fim === "number"
+            ? minutesToInputTime(data.fim)
+            : data.fim || "10:10";
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><input data-k="dia" value="${data.dia || "2026-03-12"}" /></td>
+          <td><input data-k="inicio" type="time" value="${inicioValue}" /></td>
+          <td><input data-k="fim" type="time" value="${fimValue}" /></td>
+          <td><input data-k="motivo" value="${
+            data.motivo || "Intervalo"
+          }" /></td>
+          <td><button type="button" class="danger" onclick="this.closest('tr').remove()">Remover</button></td>
+        `;
+        tbody.appendChild(tr);
+      }
+
+      function readRows(selector, mapper) {
+        return Array.from(document.querySelectorAll(selector)).map(mapper);
+      }
+
+      function getPayload() {
+        const teams = readRows("#teams_table tbody tr", (tr) => ({
+          id: tr.querySelector("[data-k='id']").value.trim(),
+          nome: tr.querySelector("[data-k='nome']").value.trim(),
+          categoria: tr.querySelector("[data-k='categoria']").value.trim(),
+          genero: tr.querySelector("[data-k='genero']").value,
+        }));
+
+        const modalidades = readRows("#modalidades_table tbody tr", (tr) => {
+          const formato = tr.querySelector("[data-k='formato']").value;
+          const categorias = getSelectedMultiValues(
+            tr.querySelector("[data-k='categorias']")
+          );
+          return {
+            id: tr.querySelector("[data-k='id']").value.trim(),
+            nome: tr.querySelector("[data-k='nome']").value.trim(),
+            duracao_min: Number(
+              tr.querySelector("[data-k='duracao_min']").value
+            ),
+            regra_genero: tr.querySelector("[data-k='regra_genero']").value,
+            formato,
+            categorias: categorias.length > 0 ? categorias : undefined,
+          };
+        });
+
+        const locais = readRows("#locais_table tbody tr", (tr) => ({
+          id: tr.querySelector("[data-k='id']").value.trim(),
+          nome: tr.querySelector("[data-k='nome']").value.trim(),
+          modalidades_permitidas: csvToArrayOrStar(
+            tr.querySelector("[data-k='modalidades_permitidas']").value
+          ),
+          categorias_permitidas: csvToArrayOrStar(
+            tr.querySelector("[data-k='categorias_permitidas']").value
+          ),
+        }));
+
+        const bloqueios = readRows("#bloqueios_table tbody tr", (tr) => ({
+          dia: tr.querySelector("[data-k='dia']").value.trim(),
+          inicio: inputTimeToMinutes(
+            tr.querySelector("[data-k='inicio']").value
+          ),
+          fim: inputTimeToMinutes(tr.querySelector("[data-k='fim']").value),
+          motivo: tr.querySelector("[data-k='motivo']").value.trim(),
+        }));
+
+        const competicao = {
+          inicio_min: inputTimeToMinutes(
+            document.getElementById("inicio_min").value
+          ),
+          fim_min: inputTimeToMinutes(document.getElementById("fim_min").value),
+          passo_grid: Number(document.getElementById("passo_grid").value),
+          dias: buildDaysFromRange(
+            document.getElementById("data_inicio").value,
+            document.getElementById("data_fim").value
+          ),
+        };
+
+        const parametros = {
+          descanso_minimo: Number(
+            document.getElementById("descanso_minimo").value
+          ),
+          modo_encaixe: document.getElementById("modo_encaixe").value,
+          modo_ordem: document.getElementById("modo_ordem").value,
+        };
+
+        const persistencia = {
+          salvar: document.getElementById("salvar").value === "true",
+          tenantId:
+            document.getElementById("tenantId").value.trim() || undefined,
+          competitionId:
+            document.getElementById("competitionId").value.trim() || undefined,
+          nomeVersao:
+            document.getElementById("nomeVersao").value.trim() || undefined,
+          createdBy:
+            document.getElementById("createdBy").value.trim() || undefined,
+        };
+
+        return {
+          teams,
+          modalidades,
+          locais,
+          bloqueios,
+          competicao,
+          parametros,
+          persistencia,
+        };
+      }
+
+      function setKpis(kpis = {}) {
+        const container = document.getElementById("kpis");
+        const criticalBox = document.getElementById("critical_alert");
+        const alertBox = document.getElementById("occupancy_alert");
+        container.innerHTML = "";
+        Object.entries(kpis).forEach(([key, value]) => {
+          const div = document.createElement("div");
+          div.className = "kpi";
+          div.innerHTML = `<div class="label">${key}</div><div class="value">${value}</div>`;
+          container.appendChild(div);
+        });
+
+        const totalNaoAlocados = Number(kpis.total_nao_alocados);
+        if (Number.isFinite(totalNaoAlocados) && totalNaoAlocados > 0) {
+          criticalBox.classList.remove("hidden");
+          criticalBox.textContent = `ERRO CRITICO: ${totalNaoAlocados} jogo(s) nao foram alocados. O cronograma possui falha de capacidade/restricoes e precisa ser revisado.`;
+          alertBox.classList.add("hidden");
+          alertBox.textContent = "";
+          alertBox.classList.remove(
+            "level-excelente",
+            "level-boa",
+            "level-atencao",
+            "level-critica"
+          );
+          return;
+        } else {
+          criticalBox.classList.add("hidden");
+          criticalBox.textContent = "";
+        }
+
+        const occupancy = Number(kpis.taxa_ocupacao_aprox);
+        alertBox.classList.remove(
+          "level-excelente",
+          "level-boa",
+          "level-atencao",
+          "level-critica"
+        );
+        if (!Number.isFinite(occupancy)) {
+          alertBox.classList.add("hidden");
+          alertBox.textContent = "";
+          return;
+        }
+
+        alertBox.classList.remove("hidden");
+        if (occupancy >= 95) {
+          alertBox.classList.add("level-excelente");
+          alertBox.textContent = `Ocupacao excelente (${occupancy.toFixed(
+            2
+          )}%). Grade muito bem otimizada dentro da janela util.`;
+        } else if (occupancy >= 80) {
+          alertBox.classList.add("level-boa");
+          alertBox.textContent = `Ocupacao boa (${occupancy.toFixed(
+            2
+          )}%). Pequenos ajustes podem elevar o aproveitamento das quadras.`;
+        } else if (occupancy >= 60) {
+          alertBox.classList.add("level-atencao");
+          alertBox.textContent = `Ocupacao em atencao (${occupancy.toFixed(
+            2
+          )}%). Existem periodos ociosos relevantes antes da ultima partida.`;
+        } else {
+          alertBox.classList.add("level-critica");
+          alertBox.textContent = `Ocupacao critica (${occupancy.toFixed(
+            2
+          )}%). O cronograma esta com baixa eficiencia e requer replanejamento.`;
+        }
+      }
+
+      function setResponse(obj) {
+        document.getElementById("response_json").textContent = JSON.stringify(
+          obj,
+          null,
+          2
+        );
+      }
+
+      function renderBrackets(result) {
+        const container = document.getElementById("bracket_container");
+        if (!result || !Array.isArray(result.associacoes_chaves)) {
+          container.innerHTML = "Nenhuma estrutura eliminatoria gerada.";
+          return;
+        }
+
+        const associations = result.associacoes_chaves;
+        const futureMatches = (result.confrontos || []).filter(
+          (m) => m.tipo_fase === "futuro"
+        );
+
+        if (associations.length === 0 && futureMatches.length === 0) {
+          container.innerHTML = "Nenhuma estrutura eliminatoria gerada.";
+          return;
+        }
+
+        const groups = new Map();
+
+        associations.forEach((a) => {
+          const chaveModalidade =
+            a.agrupador === "misto"
+              ? `${a.categoria}__${a.modalidade_id}`
+              : `${a.categoria}__${a.modalidade_id}__${a.agrupador}`;
+          const key = `${a.modalidade_id}::${a.categoria}::${a.agrupador}`;
+          if (!groups.has(key)) {
+            groups.set(key, {
+              titulo: `${a.modalidade} | ${a.categoria} | ${
+                a.agrupador === "misto" ? "Misto" : `Genero ${a.agrupador}`
+              }`,
+              chaveModalidade,
+              chaves: {},
+            });
+          }
+          const g = groups.get(key);
+          if (!g.chaves[a.chave]) {
+            g.chaves[a.chave] = [];
+          }
+          g.chaves[a.chave].push(a);
+        });
+
+        const blocks = [...groups.values()].map((g) => {
+          const chavesHtml = Object.keys(g.chaves)
+            .sort()
+            .map((ch) => {
+              const teams = g.chaves[ch]
+                .map(
+                  (t) =>
+                    `<li>${escapeHtml(t.team_nome)} (${escapeHtml(
+                      t.categoria
+                    )} | ${escapeHtml(t.genero)})</li>`
+                )
+                .join("");
+              return `<div class="bracket-box"><h4>Chave ${escapeHtml(
+                ch
+              )}</h4><ul class="bracket-list">${teams}</ul></div>`;
+            })
+            .join("");
+
+          const futuros = futureMatches
+            .filter((m) => m.chave_modalidade === g.chaveModalidade)
+            .map(
+              (m) =>
+                `<li><strong>${escapeHtml(m.fase)}:</strong> ${escapeHtml(
+                  m.time_a.nome
+                )} x ${escapeHtml(m.time_b.nome)}</li>`
+            )
+            .join("");
+
+          const futurosHtml = futuros
+            ? `<div class="bracket-box"><h4>Mata-Mata</h4><ul class="bracket-list">${futuros}</ul></div>`
+            : `<div class="bracket-box"><h4>Mata-Mata</h4><div class="small">Sem jogos futuros para este grupo.</div></div>`;
+
+          return `
+            <div class="bracket-group">
+              <div class="bracket-title">${escapeHtml(g.titulo)}</div>
+              <div class="bracket-layout">
+                <div>${
+                  chavesHtml || '<div class="small">Sem chaves.</div>'
+                }</div>
+                <div>${futurosHtml}</div>
+              </div>
+            </div>
+          `;
+        });
+
+        container.innerHTML = blocks.join("");
+      }
+
+      function printBrackets() {
+        const html = document.getElementById("bracket_container").innerHTML;
+        if (!html || html.includes("Nenhuma estrutura eliminatoria gerada")) {
+          setResponse({ warning: "Nao ha chaves para imprimir." });
+          return;
+        }
+        const win = window.open("", "_blank");
+        if (!win) {
+          setResponse({
+            warning: "Nao foi possivel abrir impressao das chaves.",
+          });
+          return;
+        }
+        win.document.write(`
+          <!doctype html>
+          <html>
+            <head>
+              <meta charset="utf-8" />
+              <title>Chaves e Mata-Mata</title>
+              <style>
+                body { font-family: Arial, sans-serif; padding: 16px; color: #111; }
+                h1 { margin-bottom: 12px; }
+                .bracket-group { border: 1px solid #ccc; border-radius: 8px; padding: 10px; margin-bottom: 10px; }
+                .bracket-title { font-weight: 700; margin-bottom: 8px; }
+                .bracket-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+                .bracket-box { border: 1px solid #ddd; border-radius: 6px; padding: 8px; }
+                .bracket-box h4 { margin: 0 0 6px; }
+                .bracket-list { margin: 0; padding-left: 16px; }
+                .small { color: #666; }
+              </style>
+            </head>
+            <body>
+              <h1>Chaves e Mata-Mata</h1>
+              ${html}
+            </body>
+          </html>
+        `);
+        win.document.close();
+        win.focus();
+        win.print();
+      }
+
+      function inputTimeToMinutes(value) {
+        if (!value || typeof value !== "string" || !value.includes(":")) {
+          return 0;
+        }
+        const [h, m] = value.split(":").map((n) => Number(n));
+        return h * 60 + m;
+      }
+
+      function minutesToInputTime(minutes) {
+        if (typeof minutes !== "number" || Number.isNaN(minutes)) {
+          return "00:00";
+        }
+        const total = Math.max(0, Math.min(1439, Math.floor(minutes)));
+        const h = Math.floor(total / 60);
+        const m = total % 60;
+        return String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0");
+      }
+
+      function buildDaysFromRange(startDate, endDate) {
+        if (!startDate || !endDate) return [];
+        if (endDate < startDate) return [];
+
+        const days = [];
+        const cursor = new Date(startDate + "T00:00:00");
+        const end = new Date(endDate + "T00:00:00");
+
+        while (cursor <= end) {
+          days.push(cursor.toISOString().slice(0, 10));
+          cursor.setDate(cursor.getDate() + 1);
+        }
+        return days;
+      }
+
+      function updateDaysPreview() {
+        const start = document.getElementById("data_inicio").value;
+        const end = document.getElementById("data_fim").value;
+        const days = buildDaysFromRange(start, end);
+        const preview = document.getElementById("dias_preview");
+
+        if (!start || !end) {
+          preview.textContent = "Selecione data de inicio e termino.";
+          return;
+        }
+        if (days.length === 0) {
+          preview.textContent =
+            "Intervalo invalido. A data de termino deve ser maior ou igual a data de inicio.";
+          return;
+        }
+        if (days.length <= 5) {
+          preview.textContent = `${days.length} dia(s): ${days
+            .map(formatDateBR)
+            .join(", ")}`;
+          return;
+        }
+        preview.textContent = `${days.length} dia(s): ${formatDateBR(
+          days[0]
+        )} ate ${formatDateBR(days[days.length - 1])}`;
+      }
+
+      function minutesToHHMM(minutes) {
+        const h = Math.floor(minutes / 60);
+        const m = minutes % 60;
+        return String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0");
+      }
+
+      function formatDateBR(isoDate) {
+        if (!isoDate || typeof isoDate !== "string" || !isoDate.includes("-")) {
+          return isoDate || "";
+        }
+        const [yyyy, mm, dd] = isoDate.split("-");
+        return `${dd}/${mm}/${yyyy}`;
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      function renderCell(cell) {
+        if (!cell || cell.tipo === "vazio") {
+          return '<span class="cell-vazio">-</span>';
+        }
+        if (cell.tipo === "bloqueado") {
+          return `<div class="cell-bloqueado">Bloqueado<br/><span class="small">${escapeHtml(
+            cell.motivo || ""
+          )}</span></div>`;
+        }
+        if (cell.tipo === "continua") {
+          return '<span class="cell-continua">continua</span>';
+        }
+        if (cell.tipo === "confronto") {
+          const ta = escapeHtml(cell.confronto?.time_a?.nome || "?");
+          const tb = escapeHtml(cell.confronto?.time_b?.nome || "?");
+          const mod = escapeHtml(cell.confronto?.modalidade || "");
+          return `<div class="cell-confronto"><strong>${ta} x ${tb}</strong><br/><span class="small">${mod} | ${minutesToHHMM(
+            cell.inicio
+          )}-${minutesToHHMM(cell.fim)}</span></div>`;
+        }
+        return '<span class="cell-vazio">-</span>';
+      }
+
+      function cellMatchesSearch(cell, searchTerm) {
+        if (!searchTerm) return true;
+        if (!cell || cell.tipo !== "confronto") return false;
+        const text = [
+          cell.confronto?.time_a?.nome || "",
+          cell.confronto?.time_a?.categoria || "",
+          cell.confronto?.time_a?.genero || "",
+          cell.confronto?.time_b?.nome || "",
+          cell.confronto?.time_b?.categoria || "",
+          cell.confronto?.time_b?.genero || "",
+          cell.confronto?.modalidade || "",
+        ]
+          .join(" ")
+          .toLowerCase();
+        return text.includes(searchTerm);
+      }
+
+      function renderMergedDayTable(dayItem, selectedCourt, searchTerm) {
+        const totalRows = (dayItem.linhas || []).length;
+        if (!totalRows) {
+          return '<div class="small">Sem linhas na grade deste dia.</div>';
+        }
+
+        const firstLine = dayItem.linhas[0];
+        const allCourtCells = firstLine?.celulas || [];
+        const selectedCourts = allCourtCells.filter((c) =>
+          selectedCourt ? c.nome_quadra === selectedCourt : true
+        );
+
+        if (selectedCourts.length === 0) {
+          return '<div class="small">Nenhuma quadra encontrada para o filtro selecionado.</div>';
+        }
+
+        const courtMeta = selectedCourts.map((court) => {
+          const index = allCourtCells.findIndex(
+            (c) => c.local_id === court.local_id
+          );
+          return {
+            index,
+            nome_quadra: court.nome_quadra,
+            local_id: court.local_id,
+          };
+        });
+
+        const matrix = Array.from({ length: totalRows }, () => ({}));
+
+        courtMeta.forEach((court) => {
+          let row = 0;
+          while (row < totalRows) {
+            const slot = dayItem.linhas[row]?.celulas?.[court.index];
+            const cell = slot?.cell || { tipo: "vazio" };
+
+            if (cell.tipo === "confronto") {
+              const rawSpan = Number(cell.span || 1);
+              const span = Math.max(1, Math.min(rawSpan, totalRows - row));
+              const showMatch =
+                !searchTerm || cellMatchesSearch(cell, searchTerm);
+              const ta = escapeHtml(cell.confronto?.time_a?.nome || "?");
+              const taCat = escapeHtml(
+                cell.confronto?.time_a?.categoria || "-"
+              );
+              const taGen = escapeHtml(cell.confronto?.time_a?.genero || "-");
+              const tb = escapeHtml(cell.confronto?.time_b?.nome || "?");
+              const tbCat = escapeHtml(
+                cell.confronto?.time_b?.categoria || "-"
+              );
+              const tbGen = escapeHtml(cell.confronto?.time_b?.genero || "-");
+              const mod = escapeHtml(cell.confronto?.modalidade || "");
+              const confrontoHtml = `
+                <div class="merged-content">
+                  <div class="merged-title merged-vs">${ta} (${taCat} | ${taGen}) x ${tb} (${tbCat} | ${tbGen})</div>
+                  <span class="merged-meta">${mod} | ${minutesToHHMM(
+                cell.inicio
+              )}-${minutesToHHMM(cell.fim)}</span>
+                </div>
+              `;
+              matrix[row][court.local_id] = {
+                html: showMatch
+                  ? confrontoHtml
+                  : '<div class="merged-content">-</div>',
+                rowspan: span,
+                className: showMatch ? "merged-confronto" : "merged-vazio",
+              };
+              for (let k = 1; k < span; k += 1) {
+                matrix[row + k][court.local_id] = { skip: true };
+              }
+              row += span;
+              continue;
+            }
+
+            if (cell.tipo === "bloqueado") {
+              let span = 1;
+              for (let next = row + 1; next < totalRows; next += 1) {
+                const nextCell =
+                  dayItem.linhas[next]?.celulas?.[court.index]?.cell;
+                if (
+                  nextCell?.tipo === "bloqueado" &&
+                  (nextCell.motivo || "") === (cell.motivo || "")
+                ) {
+                  span += 1;
+                  continue;
+                }
+                break;
+              }
+              const blockStart = dayItem.linhas[row]?.inicio;
+              const blockEnd = dayItem.linhas[row + span - 1]?.fim;
+              matrix[row][court.local_id] = {
+                html: `
+                  <div class="merged-content">
+                    <div class="merged-title merged-blocked">Bloqueado</div>
+                    <span class="merged-meta">${escapeHtml(
+                      cell.motivo || ""
+                    )}</span>
+                    <span class="small">${minutesToHHMM(
+                      blockStart
+                    )}-${minutesToHHMM(blockEnd)}</span>
+                  </div>
+                `,
+                rowspan: span,
+                className: "merged-bloqueado",
+              };
+              for (let k = 1; k < span; k += 1) {
+                matrix[row + k][court.local_id] = { skip: true };
+              }
+              row += span;
+              continue;
+            }
+
+            if (cell.tipo === "continua") {
+              matrix[row][court.local_id] = {
+                html: '<div class="merged-content">-</div>',
+                rowspan: 1,
+                className: "merged-vazio",
+              };
+              row += 1;
+              continue;
+            }
+
+            matrix[row][court.local_id] = {
+              html: '<div class="merged-content">-</div>',
+              rowspan: 1,
+              className: "merged-vazio",
+            };
+            row += 1;
+          }
+        });
+
+        const headerCells = courtMeta
+          .map((c) => `<th>${escapeHtml(c.nome_quadra)}</th>`)
+          .join("");
+
+        const rowsHtml = dayItem.linhas
+          .map((linha, rowIndex) => {
+            const timeCell = `<td>${minutesToHHMM(
+              linha.inicio
+            )} - ${minutesToHHMM(linha.fim)}</td>`;
+            const courtCells = courtMeta
+              .map((court) => {
+                const info = matrix[rowIndex][court.local_id];
+                if (!info || info.skip) {
+                  return "";
+                }
+                const rowspanAttr =
+                  info.rowspan > 1 ? ` rowspan="${info.rowspan}"` : "";
+                const classAttr = info.className
+                  ? ` class="${info.className}"`
+                  : "";
+                return `<td${classAttr}${rowspanAttr}>${info.html}</td>`;
+              })
+              .join("");
+            return `<tr>${timeCell}${courtCells}</tr>`;
+          })
+          .join("");
+
+        return `
+          <table class="table compact">
+            <thead>
+              <tr>
+                <th>Horario</th>
+                ${headerCells}
+              </tr>
+            </thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        `;
+      }
+
+      function renderGrade(grade) {
+        lastRenderedGrade = Array.isArray(grade) ? grade : [];
+        const container = document.getElementById("grade_container");
+        const tabsContainer = document.getElementById("grade_tabs");
+        if (!Array.isArray(grade) || grade.length === 0) {
+          container.innerHTML = "Sem grade disponivel para exibir.";
+          tabsContainer.innerHTML = "";
+          setCourtFilterOptions([]);
+          selectedGradeDayTab = "";
+          return;
+        }
+
+        renderGradeTabs(grade);
+        setCourtFilterOptions(grade);
+        const selectedCourt =
+          document.getElementById("grade_court_filter").value;
+        const searchTerm = document
+          .getElementById("grade_search")
+          .value.trim()
+          .toLowerCase();
+        const filtered = getSelectedGradeDays(grade);
+
+        if (filtered.length === 0) {
+          container.innerHTML =
+            "Nenhuma grade encontrada para o dia selecionado.";
+          return;
+        }
+
+        const chunks = filtered.map((dayItem) => {
+          const mergedTable = renderMergedDayTable(
+            dayItem,
+            selectedCourt,
+            searchTerm
+          );
+          return `
+            <div class="day-grid">
+              <h3 style="margin:0 0 8px;">Dia: ${escapeHtml(
+                formatDateBR(dayItem.dia)
+              )}</h3>
+              ${mergedTable}
+            </div>
+          `;
+        });
+
+        container.innerHTML = chunks.join("");
+      }
+
+      function renderGradeTabs(grade) {
+        const tabsContainer = document.getElementById("grade_tabs");
+        const days = Array.isArray(grade) ? grade.map((g) => g.dia) : [];
+        const uniqueDays = [...new Set(days)];
+
+        if (!selectedGradeDayTab || !uniqueDays.includes(selectedGradeDayTab)) {
+          selectedGradeDayTab = uniqueDays[0] || "";
+        }
+
+        tabsContainer.innerHTML = "";
+        uniqueDays.forEach((day) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = `day-tab ${
+            day === selectedGradeDayTab ? "active" : ""
+          }`;
+          button.textContent = formatDateBR(day);
+          button.onclick = () => {
+            selectedGradeDayTab = day;
+            renderGrade(lastRenderedGrade);
+          };
+          tabsContainer.appendChild(button);
+        });
+      }
+
+      function getSelectedGradeDays(grade) {
+        if (!Array.isArray(grade) || grade.length === 0) {
+          return [];
+        }
+        if (!selectedGradeDayTab) {
+          return [grade[0]];
+        }
+        return grade.filter((d) => d.dia === selectedGradeDayTab);
+      }
+
+      function setCourtFilterOptions(grade) {
+        const select = document.getElementById("grade_court_filter");
+        const current = select.value;
+        const courts = [];
+        (grade || []).forEach((dayItem) => {
+          const firstLine = dayItem.linhas && dayItem.linhas[0];
+          (firstLine?.celulas || []).forEach((c) => courts.push(c.nome_quadra));
+        });
+        const uniqueCourts = [...new Set(courts)];
+        select.innerHTML = '<option value="">Todas as quadras</option>';
+        uniqueCourts.forEach((court) => {
+          const option = document.createElement("option");
+          option.value = court;
+          option.textContent = court;
+          select.appendChild(option);
+        });
+        if (current && uniqueCourts.includes(current)) {
+          select.value = current;
+        }
+      }
+
+      function gradeRowsForExport(grade) {
+        const selectedCourt =
+          document.getElementById("grade_court_filter").value;
+        const searchTerm = document
+          .getElementById("grade_search")
+          .value.trim()
+          .toLowerCase();
+        const filtered = getSelectedGradeDays(grade);
+        const rows = [["dia", "inicio", "fim", "quadra", "tipo", "descricao"]];
+
+        filtered.forEach((dayItem) => {
+          (dayItem.linhas || []).forEach((linha) => {
+            const cells = (linha.celulas || []).filter((c) =>
+              selectedCourt ? c.nome_quadra === selectedCourt : true
+            );
+            if (
+              searchTerm &&
+              !cells.some((c) => cellMatchesSearch(c.cell, searchTerm))
+            ) {
+              return;
+            }
+            cells.forEach((c) => {
+              const cell = c.cell || { tipo: "vazio" };
+              let descricao = "";
+              if (cell.tipo === "bloqueado") {
+                descricao = cell.motivo || "";
+              } else if (cell.tipo === "confronto") {
+                const ta = cell.confronto?.time_a?.nome || "?";
+                const tb = cell.confronto?.time_b?.nome || "?";
+                const mod = cell.confronto?.modalidade || "";
+                descricao = `${ta} x ${tb} (${mod})`;
+              } else if (cell.tipo === "continua") {
+                descricao = "continua";
+              }
+              rows.push([
+                formatDateBR(dayItem.dia),
+                minutesToHHMM(linha.inicio),
+                minutesToHHMM(linha.fim),
+                c.nome_quadra || "",
+                cell.tipo || "vazio",
+                descricao,
+              ]);
+            });
+          });
+        });
+
+        return rows;
+      }
+
+      function csvEscape(value) {
+        const s = String(value ?? "");
+        if (s.includes(",") || s.includes('"') || s.includes("\n")) {
+          return '"' + s.replaceAll('"', '""') + '"';
+        }
+        return s;
+      }
+
+      function downloadTextFile(filename, content, mimeType) {
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      }
+
+      function exportGradeCsv() {
+        if (
+          !Array.isArray(lastRenderedGrade) ||
+          lastRenderedGrade.length === 0
+        ) {
+          setResponse({ warning: "Nao ha grade para exportar." });
+          return;
+        }
+        const rows = gradeRowsForExport(lastRenderedGrade);
+        const csv = rows.map((row) => row.map(csvEscape).join(",")).join("\n");
+        downloadTextFile(
+          "grade-agendamento.csv",
+          csv,
+          "text/csv;charset=utf-8;"
+        );
+      }
+
+      function exportGradePdf() {
+        if (
+          !Array.isArray(lastRenderedGrade) ||
+          lastRenderedGrade.length === 0
+        ) {
+          setResponse({ warning: "Nao ha grade para exportar." });
+          return;
+        }
+        const selectedCourt =
+          document.getElementById("grade_court_filter").value;
+        const searchTerm = document.getElementById("grade_search").value.trim();
+        const titleParts = [
+          selectedGradeDayTab
+            ? `Dia: ${formatDateBR(selectedGradeDayTab)}`
+            : "Dia nao selecionado",
+          selectedCourt ? `Quadra: ${selectedCourt}` : "Todas as quadras",
+          searchTerm ? `Busca: ${searchTerm}` : "Sem busca",
+        ];
+        const title = `Grade - ${titleParts.join(" | ")}`;
+        const html = document.getElementById("grade_container").innerHTML;
+        const win = window.open("", "_blank");
+        if (!win) {
+          setResponse({
+            warning: "Nao foi possivel abrir janela de impressao.",
+          });
+          return;
+        }
+        win.document.write(`
+          <!doctype html>
+          <html>
+            <head>
+              <meta charset="utf-8" />
+              <title>${escapeHtml(title)}</title>
+              <style>
+                body { font-family: Arial, sans-serif; padding: 16px; color: #111; }
+                h1 { font-size: 20px; margin-bottom: 12px; }
+                table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+                th, td { border: 1px solid #bbb; padding: 6px; vertical-align: top; font-size: 11px; }
+                th { background: #efefef; }
+                .cell-bloqueado { background: #ffd8df; }
+                .cell-confronto { background: #d8ffef; }
+                .cell-continua { color: #3a4a9f; }
+                .small { color: #555; font-size: 10px; }
+              </style>
+            </head>
+            <body>
+              <h1>${escapeHtml(title)}</h1>
+              ${html}
+            </body>
+          </html>
+        `);
+        win.document.close();
+        win.focus();
+        win.print();
+      }
+
+      async function generate() {
+        const payload = getPayload();
+        setResponse({ loading: true, message: "Gerando..." });
+
+        try {
+          const response = await fetch("/api/scheduling/generate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const json = await response.json();
+          setResponse(json);
+          if (json && json.resultado && json.resultado.kpis) {
+            lastScheduleResult = json.resultado;
+            setKpis(json.resultado.kpis);
+            renderGrade(json.resultado.grade);
+            renderBrackets(json.resultado);
+          } else {
+            lastScheduleResult = null;
+            setKpis({});
+            renderGrade([]);
+            renderBrackets(null);
+          }
+        } catch (error) {
+          lastScheduleResult = null;
+          setResponse({ error: String(error) });
+          setKpis({});
+          renderGrade([]);
+          renderBrackets(null);
+        }
+      }
+
+      function saveDraft() {
+        const payload = getPayload();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+        setResponse({ ok: true, message: "Rascunho salvo no navegador." });
+      }
+
+      function clearRows(selector) {
+        const tbody = document.querySelector(selector);
+        tbody.innerHTML = "";
+      }
+
+      function loadDraft() {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+          setResponse({ warning: "Nenhum rascunho encontrado." });
+          return;
+        }
+        const data = JSON.parse(raw);
+
+        document.getElementById("inicio_min").value = minutesToInputTime(
+          data.competicao?.inicio_min ?? 480
+        );
+        document.getElementById("fim_min").value = minutesToInputTime(
+          data.competicao?.fim_min ?? 720
+        );
+        document.getElementById("passo_grid").value =
+          data.competicao?.passo_grid ?? 5;
+        const dias = data.competicao?.dias || [];
+        if (dias.length > 0) {
+          document.getElementById("data_inicio").value = dias[0];
+          document.getElementById("data_fim").value = dias[dias.length - 1];
+        } else {
+          document.getElementById("data_inicio").value = "2026-03-12";
+          document.getElementById("data_fim").value = "2026-03-12";
+        }
+
+        document.getElementById("descanso_minimo").value =
+          data.parametros?.descanso_minimo ?? 0;
+        document.getElementById("modo_encaixe").value =
+          data.parametros?.modo_encaixe ?? "arredondar_cima";
+        document.getElementById("modo_ordem").value =
+          data.parametros?.modo_ordem ?? "dificil_primeiro";
+
+        document.getElementById("salvar").value = String(
+          data.persistencia?.salvar ?? false
+        );
+        document.getElementById("tenantId").value =
+          data.persistencia?.tenantId || "";
+        document.getElementById("competitionId").value =
+          data.persistencia?.competitionId || "";
+        document.getElementById("nomeVersao").value =
+          data.persistencia?.nomeVersao || "";
+        document.getElementById("createdBy").value =
+          data.persistencia?.createdBy || "";
+
+        clearRows("#teams_table tbody");
+        clearRows("#modalidades_table tbody");
+        clearRows("#locais_table tbody");
+        clearRows("#bloqueios_table tbody");
+
+        (data.teams || []).forEach(addTeam);
+        (data.modalidades || []).forEach(addModality);
+        (data.locais || []).forEach(addLocal);
+        (data.bloqueios || []).forEach(addBlock);
+        updateModalityCategorySelectors();
+
+        updateDaysPreview();
+        setResponse({ ok: true, message: "Rascunho carregado." });
+      }
+
+      function clearDraft() {
+        localStorage.removeItem(STORAGE_KEY);
+        setResponse({ ok: true, message: "Rascunho removido." });
+      }
+
+      addTeam({ id: "team-1", nome: "A", categoria: "5o Ano", genero: "M" });
+      addTeam({ id: "team-2", nome: "B", categoria: "5o Ano", genero: "M" });
+      addTeam({ id: "team-3", nome: "C", categoria: "5o Ano", genero: "M" });
+      addTeam({ id: "team-7", nome: "D", categoria: "5o Ano", genero: "M" });
+      addTeam({ id: "team-4", nome: "A", categoria: "5o Ano", genero: "F" });
+      addTeam({ id: "team-5", nome: "B", categoria: "5o Ano", genero: "F" });
+      addTeam({ id: "team-6", nome: "C", categoria: "5o Ano", genero: "F" });
+      addTeam({ id: "team-8", nome: "D", categoria: "5o Ano", genero: "F" });
+      addTeam({ id: "team-10", nome: "A", categoria: "6o Ano", genero: "M" });
+      addTeam({ id: "team-11", nome: "B", categoria: "6o Ano", genero: "M" });
+      addTeam({ id: "team-12", nome: "C", categoria: "6o Ano", genero: "M" });
+      addTeam({ id: "team-14", nome: "D", categoria: "6o Ano", genero: "M" });
+      addTeam({ id: "team-15", nome: "E", categoria: "6o Ano", genero: "M" });
+      addTeam({ id: "team-16", nome: "A", categoria: "6o Ano", genero: "F" });
+      addTeam({ id: "team-17", nome: "B", categoria: "6o Ano", genero: "F" });
+      addTeam({ id: "team-18", nome: "C", categoria: "6o Ano", genero: "F" });
+      addTeam({ id: "team-19", nome: "D", categoria: "6o Ano", genero: "F" });
+      addTeam({ id: "team-20", nome: "E", categoria: "6o Ano", genero: "F" });
+      addModality({
+        id: "mod-1",
+        nome: "Futsal",
+        duracao_min: 20,
+        regra_genero: "separado",
+        formato: "todos_contra_todos",
+      });
+      addModality({
+        id: "mod-2",
+        nome: "Volei",
+        duracao_min: 20,
+        regra_genero: "separado",
+        formato: "todos_contra_todos",
+      });
+      addLocal({
+        id: "local-1",
+        nome: "Quadra 1",
+        modalidades_permitidas: "*",
+        categorias_permitidas: "*",
+      });
+      addLocal({
+        id: "local-2",
+        nome: "Quadra 2",
+        modalidades_permitidas: "*",
+        categorias_permitidas: "*",
+      });
+      addBlock({
+        dia: "2026-03-12",
+        inicio: "10:00",
+        fim: "10:20",
+        motivo: "Recreio",
+      });
+      updateDaysPreview();
+      setResponse({ info: "Preencha os dados e clique em Gerar Cronograma." });
+      renderGrade([]);
+    </script>
+  </body>
+</html>

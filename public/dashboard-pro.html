@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Planejador Olimpiadas - Dashboard v2</title>
+    <style>
+      :root {
+        --bg: #f1f5f9;
+        --card: #ffffff;
+        --border: #dbe5f0;
+        --text: #1e293b;
+        --muted: #64748b;
+        --sidebar: #0f172a;
+        --sidebar-text: #e2e8f0;
+        --primary: #2563eb;
+        --primary-hover: #1d4ed8;
+        --danger: #dc2626;
+        --danger-soft: #fee2e2;
+        --ok: #059669;
+        --ok-soft: #d1fae5;
+        --shadow: 0 14px 38px rgba(15, 23, 42, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      .auth-shell {
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 20px;
+      }
+
+      .auth-card {
+        width: min(840px, 100%);
+        display: grid;
+        grid-template-columns: 1.1fr 1fr;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: #fff;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      .auth-hero {
+        background: radial-gradient(circle at 25% 15%, #1d4ed8 0%, #0f172a 70%);
+        color: #e2e8f0;
+        padding: 28px;
+      }
+
+      .auth-hero h1 {
+        margin: 0;
+        font-size: 24px;
+      }
+
+      .auth-hero p {
+        margin-top: 10px;
+        line-height: 1.5;
+        color: #bfdbfe;
+        font-size: 14px;
+      }
+
+      .auth-form {
+        padding: 22px;
+      }
+
+      .auth-tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 14px;
+      }
+
+      .auth-tabs button {
+        flex: 1;
+      }
+
+      .layout {
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: 270px 1fr;
+      }
+
+      aside {
+        background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
+        color: var(--sidebar-text);
+        border-right: 1px solid #1f2937;
+        padding: 24px 18px;
+      }
+
+      .brand h2 {
+        margin: 0;
+        font-size: 18px;
+      }
+
+      .brand p {
+        margin: 4px 0 0;
+        font-size: 12px;
+        color: #93c5fd;
+      }
+
+      .menu-title {
+        margin-top: 20px;
+        margin-bottom: 8px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #93c5fd;
+      }
+
+      .menu-btn {
+        width: 100%;
+        text-align: left;
+        border: 1px solid transparent;
+        background: transparent;
+        color: var(--sidebar-text);
+        padding: 10px 12px;
+        border-radius: 10px;
+        cursor: pointer;
+      }
+
+      .menu-btn + .menu-btn {
+        margin-top: 6px;
+      }
+
+      .menu-btn.active {
+        background: rgba(37, 99, 235, 0.25);
+        border-color: rgba(96, 165, 250, 0.4);
+      }
+
+      .menu-btn.muted {
+        color: #94a3b8;
+      }
+
+      .user-box {
+        margin-top: 26px;
+        border: 1px solid #334155;
+        border-radius: 12px;
+        background: rgba(15, 23, 42, 0.5);
+        padding: 12px;
+      }
+
+      .user-box .label {
+        color: #93c5fd;
+        font-size: 11px;
+        text-transform: uppercase;
+      }
+
+      .user-box .value {
+        margin-top: 6px;
+        font-size: 13px;
+        word-break: break-all;
+      }
+
+      main {
+        padding: 22px;
+      }
+
+      .topbar,
+      .card,
+      .kpi {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: var(--card);
+        box-shadow: var(--shadow);
+      }
+
+      .topbar {
+        padding: 16px;
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .topbar h1 {
+        margin: 0;
+        font-size: 24px;
+      }
+
+      .topbar p {
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .summary {
+        margin-top: 16px;
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      }
+
+      .kpi {
+        padding: 14px;
+      }
+
+      .kpi .label {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .kpi .value {
+        margin-top: 7px;
+        font-weight: 700;
+        font-size: 30px;
+      }
+
+      .card {
+        margin-top: 16px;
+        padding: 16px;
+      }
+
+      .card-head {
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+
+      .card-head h3 {
+        margin: 0;
+      }
+
+      .card-head p {
+        margin: 5px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        min-width: 170px;
+      }
+
+      label {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      input,
+      button {
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: #fff;
+        color: var(--text);
+        font-size: 14px;
+        padding: 10px 12px;
+      }
+
+      button {
+        cursor: pointer;
+      }
+
+      .btn-primary {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: #fff;
+      }
+
+      .btn-primary:hover {
+        background: var(--primary-hover);
+      }
+
+      .btn-danger {
+        background: var(--danger-soft);
+        border-color: #fecaca;
+        color: var(--danger);
+      }
+
+      .btn-soft {
+        background: #eff6ff;
+        border-color: #bfdbfe;
+        color: #1d4ed8;
+      }
+
+      .notice {
+        border: 1px solid #bfdbfe;
+        background: #eff6ff;
+        color: #1d4ed8;
+        border-radius: 10px;
+        padding: 10px;
+        font-size: 13px;
+        margin-bottom: 12px;
+      }
+
+      .notice.error {
+        border-color: #fecaca;
+        background: #fff1f2;
+        color: #9f1239;
+      }
+
+      .table-wrap {
+        overflow: auto;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+      }
+
+      table {
+        width: 100%;
+        min-width: 930px;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        padding: 10px;
+        border-bottom: 1px solid var(--border);
+        font-size: 13px;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        background: #f8fafc;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      tr:last-child td {
+        border-bottom: none;
+      }
+
+      .actions {
+        display: flex;
+        gap: 7px;
+        flex-wrap: wrap;
+      }
+
+      .actions button {
+        font-size: 12px;
+        padding: 7px 9px;
+      }
+
+      .tag {
+        display: inline-block;
+        border-radius: 999px;
+        padding: 4px 8px;
+        font-size: 11px;
+        font-weight: 600;
+        background: var(--ok-soft);
+        color: var(--ok);
+      }
+
+      .empty {
+        border: 1px dashed #cbd5e1;
+        border-radius: 12px;
+        text-align: center;
+        color: var(--muted);
+        padding: 20px;
+      }
+
+      .modal-bg {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+      }
+
+      .modal {
+        width: min(760px, 100%);
+        max-height: 88vh;
+        overflow: auto;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: #fff;
+        box-shadow: 0 24px 48px rgba(15, 23, 42, 0.25);
+        padding: 16px;
+      }
+
+      .modal h4 {
+        margin: 0;
+      }
+
+      .modal p {
+        margin: 6px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .modal-footer {
+        margin-top: 12px;
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      @media (max-width: 980px) {
+        .auth-card {
+          grid-template-columns: 1fr;
+        }
+
+        .layout {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <section id="auth_screen" class="auth-shell">
+      <div class="auth-card">
+        <div class="auth-hero">
+          <h1>Dashboard v2</h1>
+          <p>
+            Autenticacao e autorizacao por usuario ativadas. Cada conta enxerga apenas os
+            campeonatos criados por ela.
+          </p>
+        </div>
+        <div class="auth-form">
+          <div id="auth_notice" class="notice hidden"></div>
+          <div class="auth-tabs">
+            <button type="button" id="tab_login" class="btn-primary">Entrar</button>
+            <button type="button" id="tab_signup">Criar conta</button>
+          </div>
+
+          <form id="login_form">
+            <div class="field">
+              <label for="login_email">E-mail</label>
+              <input id="login_email" type="email" required />
+            </div>
+            <div class="field" style="margin-top: 10px">
+              <label for="login_password">Senha</label>
+              <input id="login_password" type="password" required minlength="6" />
+            </div>
+            <button type="submit" class="btn-primary" style="margin-top: 14px; width: 100%">
+              Acessar dashboard
+            </button>
+          </form>
+
+          <form id="signup_form" class="hidden">
+            <div class="field">
+              <label for="signup_name">Nome</label>
+              <input id="signup_name" type="text" required />
+            </div>
+            <div class="field" style="margin-top: 10px">
+              <label for="signup_email">E-mail</label>
+              <input id="signup_email" type="email" required />
+            </div>
+            <div class="field" style="margin-top: 10px">
+              <label for="signup_password">Senha</label>
+              <input id="signup_password" type="password" required minlength="6" />
+            </div>
+            <div class="field" style="margin-top: 10px">
+              <label for="signup_org">Nome da organizacao (opcional)</label>
+              <input id="signup_org" type="text" />
+            </div>
+            <button type="submit" class="btn-primary" style="margin-top: 14px; width: 100%">
+              Criar conta e entrar
+            </button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <section id="app_screen" class="layout hidden">
+      <aside>
+        <div class="brand">
+          <h2>Planejador Olimpiadas</h2>
+          <p>Dashboard profissional</p>
+        </div>
+        <p class="menu-title">Gestao</p>
+        <button class="menu-btn active" type="button">Campeonatos</button>
+        <button class="menu-btn muted" type="button">Relatorios (em breve)</button>
+        <p class="menu-title">Cadastros master</p>
+        <button class="menu-btn muted" type="button">Times (em breve)</button>
+        <button class="menu-btn muted" type="button">Modalidades (em breve)</button>
+        <button class="menu-btn muted" type="button">Locais (em breve)</button>
+        <p class="menu-title">Ferramentas</p>
+        <button class="menu-btn" id="open_legacy_button" type="button">Abrir dashboard atual</button>
+        <div class="user-box">
+          <div class="label">Sessao ativa</div>
+          <div id="sidebar_user_name" class="value">-</div>
+          <div id="sidebar_user_email" class="value" style="margin-top: 2px; color: #93c5fd">-</div>
+          <button id="logout_button" class="btn-danger" type="button" style="margin-top: 10px; width: 100%">
+            Sair
+          </button>
+        </div>
+      </aside>
+
+      <main>
+        <div class="topbar">
+          <div>
+            <h1>Painel de Campeonatos</h1>
+            <p>
+              Lista automaticamente conectada ao usuario logado. Sem necessidade de preencher
+              tenantId manual.
+            </p>
+          </div>
+          <div>
+            <button id="new_competition_button" class="btn-primary" type="button">Novo campeonato</button>
+          </div>
+        </div>
+
+        <div id="app_notice" class="notice hidden"></div>
+
+        <section class="summary">
+          <article class="kpi">
+            <div class="label">Meus campeonatos</div>
+            <div class="value" id="kpi_competitions">0</div>
+          </article>
+          <article class="kpi">
+            <div class="label">Versoes geradas</div>
+            <div class="value" id="kpi_versions">0</div>
+          </article>
+          <article class="kpi">
+            <div class="label">Confrontos persistidos</div>
+            <div class="value" id="kpi_matches">0</div>
+          </article>
+        </section>
+
+        <section class="card">
+          <div class="card-head">
+            <div>
+              <h3>Meus campeonatos</h3>
+              <p>Edite, visualize e remova apenas os campeonatos criados por voce.</p>
+            </div>
+            <div class="field">
+              <label for="search_input">Buscar por nome</label>
+              <input id="search_input" type="text" placeholder="Digite para filtrar..." />
+            </div>
+          </div>
+
+          <div id="empty_state" class="empty hidden">
+            Nenhum campeonato criado ainda. Clique em "Novo campeonato" para comecar.
+          </div>
+
+          <div id="table_wrap" class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Periodo</th>
+                  <th>Janela</th>
+                  <th>Grid</th>
+                  <th>Versoes</th>
+                  <th>Confrontos</th>
+                  <th>Status</th>
+                  <th style="min-width: 230px">Acoes</th>
+                </tr>
+              </thead>
+              <tbody id="competitions_tbody"></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </section>
+
+    <div id="competition_modal_bg" class="modal-bg hidden">
+      <div class="modal">
+        <h4 id="competition_modal_title">Novo campeonato</h4>
+        <p>Informe os dados principais para organizar seu cronograma.</p>
+        <div class="row" style="margin-top: 12px">
+          <div class="field" style="flex: 2">
+            <label for="form_name">Nome</label>
+            <input id="form_name" type="text" />
+          </div>
+          <div class="field">
+            <label for="form_grid">Passo do grid (min)</label>
+            <input id="form_grid" type="number" min="5" max="60" step="5" value="10" />
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label for="form_start_date">Data inicial</label>
+            <input id="form_start_date" type="date" />
+          </div>
+          <div class="field">
+            <label for="form_end_date">Data final</label>
+            <input id="form_end_date" type="date" />
+          </div>
+          <div class="field">
+            <label for="form_start_time">Horario inicio</label>
+            <input id="form_start_time" type="time" value="08:00" />
+          </div>
+          <div class="field">
+            <label for="form_end_time">Horario fim</label>
+            <input id="form_end_time" type="time" value="18:00" />
+          </div>
+        </div>
+        <div id="days_preview" class="notice" style="margin-top: 10px">
+          Selecione as datas para visualizar os dias gerados.
+        </div>
+        <div class="modal-footer">
+          <button id="competition_cancel_button" type="button">Cancelar</button>
+          <button id="competition_save_button" class="btn-primary" type="button">Salvar</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="detail_modal_bg" class="modal-bg hidden">
+      <div class="modal">
+        <h4>Detalhes do campeonato</h4>
+        <p>Resumo para consulta rapida e continuidade no fluxo operacional.</p>
+        <div id="detail_content" style="margin-top: 10px"></div>
+        <div class="modal-footer">
+          <button id="detail_close_button" type="button">Fechar</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const AUTH_TOKEN_KEY = "dashboard_v2_auth_token";
+
+      const state = {
+        token: localStorage.getItem(AUTH_TOKEN_KEY) || "",
+        user: null,
+        competitions: [],
+        filteredCompetitions: [],
+        editingCompetitionId: null,
+      };
+
+      const refs = {
+        authScreen: document.getElementById("auth_screen"),
+        appScreen: document.getElementById("app_screen"),
+        authNotice: document.getElementById("auth_notice"),
+        appNotice: document.getElementById("app_notice"),
+        loginForm: document.getElementById("login_form"),
+        signupForm: document.getElementById("signup_form"),
+        tabLogin: document.getElementById("tab_login"),
+        tabSignup: document.getElementById("tab_signup"),
+        sidebarUserName: document.getElementById("sidebar_user_name"),
+        sidebarUserEmail: document.getElementById("sidebar_user_email"),
+        kpiCompetitions: document.getElementById("kpi_competitions"),
+        kpiVersions: document.getElementById("kpi_versions"),
+        kpiMatches: document.getElementById("kpi_matches"),
+        searchInput: document.getElementById("search_input"),
+        tbody: document.getElementById("competitions_tbody"),
+        emptyState: document.getElementById("empty_state"),
+        tableWrap: document.getElementById("table_wrap"),
+        modalBg: document.getElementById("competition_modal_bg"),
+        modalTitle: document.getElementById("competition_modal_title"),
+        formName: document.getElementById("form_name"),
+        formGrid: document.getElementById("form_grid"),
+        formStartDate: document.getElementById("form_start_date"),
+        formEndDate: document.getElementById("form_end_date"),
+        formStartTime: document.getElementById("form_start_time"),
+        formEndTime: document.getElementById("form_end_time"),
+        daysPreview: document.getElementById("days_preview"),
+        detailModalBg: document.getElementById("detail_modal_bg"),
+        detailContent: document.getElementById("detail_content"),
+      };
+
+      const escapeHtml = (value) =>
+        String(value ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+
+      const showNotice = (target, message, type = "info") => {
+        target.textContent = message;
+        target.classList.remove("hidden", "error");
+        if (type === "error") target.classList.add("error");
+      };
+
+      const hideNotice = (target) => {
+        target.classList.add("hidden");
+        target.classList.remove("error");
+      };
+
+      const requestJson = async (url, options = {}) => {
+        const headers = {
+          "Content-Type": "application/json",
+          ...(options.headers || {}),
+          ...(state.token ? { Authorization: `Bearer ${state.token}` } : {}),
+        };
+        const response = await fetch(url, { ...options, headers });
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(body.message || "Falha na requisicao.");
+        }
+        return body;
+      };
+
+      const minutesToTime = (minutes) => {
+        const hh = Math.floor(minutes / 60);
+        const mm = minutes % 60;
+        return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+      };
+
+      const timeToMinutes = (value) => {
+        const [hh, mm] = String(value || "").split(":").map(Number);
+        if (!Number.isInteger(hh) || !Number.isInteger(mm)) return null;
+        return hh * 60 + mm;
+      };
+
+      const formatDateBr = (value) => {
+        if (!value) return "-";
+        const date = new Date(`${value}T00:00:00`);
+        return date.toLocaleDateString("pt-BR");
+      };
+
+      const buildDaysFromRange = (startDate, endDate) => {
+        if (!startDate || !endDate) return [];
+        const start = new Date(`${startDate}T00:00:00`);
+        const end = new Date(`${endDate}T00:00:00`);
+        if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start > end) return [];
+        const days = [];
+        for (let cursor = new Date(start); cursor <= end; cursor.setDate(cursor.getDate() + 1)) {
+          days.push(cursor.toISOString().slice(0, 10));
+        }
+        return days;
+      };
+
+      const updateDaysPreview = () => {
+        const days = buildDaysFromRange(refs.formStartDate.value, refs.formEndDate.value);
+        if (days.length === 0) {
+          refs.daysPreview.textContent = "Selecione uma faixa de datas valida para gerar os dias da competicao.";
+          return;
+        }
+        refs.daysPreview.textContent = `Dias gerados (${days.length}): ${days.join(", ")}`;
+      };
+
+      const setAuthenticatedView = (enabled) => {
+        refs.authScreen.classList.toggle("hidden", enabled);
+        refs.appScreen.classList.toggle("hidden", !enabled);
+      };
+
+      const setSession = (token, user) => {
+        state.token = token;
+        state.user = user;
+        localStorage.setItem(AUTH_TOKEN_KEY, token);
+        refs.sidebarUserName.textContent = user.name;
+        refs.sidebarUserEmail.textContent = user.email;
+      };
+
+      const clearSession = () => {
+        state.token = "";
+        state.user = null;
+        localStorage.removeItem(AUTH_TOKEN_KEY);
+        setAuthenticatedView(false);
+        state.competitions = [];
+        state.filteredCompetitions = [];
+      };
+
+      const renderKpis = () => {
+        refs.kpiCompetitions.textContent = String(state.competitions.length);
+        refs.kpiVersions.textContent = String(
+          state.competitions.reduce((acc, item) => acc + (item._count?.scheduleVersions || 0), 0)
+        );
+        refs.kpiMatches.textContent = String(
+          state.competitions.reduce((acc, item) => acc + (item._count?.matches || 0), 0)
+        );
+      };
+
+      const renderTable = () => {
+        refs.tbody.innerHTML = "";
+        if (state.filteredCompetitions.length === 0) {
+          refs.emptyState.classList.remove("hidden");
+          refs.tableWrap.classList.add("hidden");
+          return;
+        }
+
+        refs.emptyState.classList.add("hidden");
+        refs.tableWrap.classList.remove("hidden");
+
+        for (const competition of state.filteredCompetitions) {
+          const firstDay = competition.days[0];
+          const lastDay = competition.days[competition.days.length - 1];
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td><strong>${escapeHtml(competition.name)}</strong><br /><span style="color: var(--muted)">${escapeHtml(competition.id)}</span></td>
+            <td>${formatDateBr(firstDay)} ate ${formatDateBr(lastDay)}<br /><span style="color: var(--muted)">${competition.days.length} dia(s)</span></td>
+            <td>${minutesToTime(competition.startMin)} - ${minutesToTime(competition.endMin)}</td>
+            <td>${competition.stepGrid} min</td>
+            <td>${competition._count?.scheduleVersions || 0}</td>
+            <td>${competition._count?.matches || 0}</td>
+            <td><span class="tag">Ativo</span></td>
+            <td>
+              <div class="actions">
+                <button type="button" data-action="view" data-id="${competition.id}">Visualizar</button>
+                <button type="button" data-action="edit" data-id="${competition.id}" class="btn-soft">Editar</button>
+                <button type="button" data-action="remove" data-id="${competition.id}" class="btn-danger">Remover</button>
+              </div>
+            </td>
+          `;
+          refs.tbody.appendChild(tr);
+        }
+      };
+
+      const applySearch = () => {
+        const term = refs.searchInput.value.trim().toLowerCase();
+        state.filteredCompetitions = !term
+          ? [...state.competitions]
+          : state.competitions.filter((item) => item.name.toLowerCase().includes(term));
+        renderTable();
+      };
+
+      const loadCompetitions = async () => {
+        const data = await requestJson("/api/competitions");
+        state.competitions = data.competitions || [];
+        state.filteredCompetitions = [...state.competitions];
+        renderKpis();
+        applySearch();
+      };
+
+      const openCompetitionModal = (mode, competition) => {
+        state.editingCompetitionId = mode === "edit" ? competition.id : null;
+        refs.modalTitle.textContent = mode === "edit" ? "Editar campeonato" : "Novo campeonato";
+
+        if (mode === "edit") {
+          refs.formName.value = competition.name;
+          refs.formGrid.value = String(competition.stepGrid);
+          refs.formStartDate.value = competition.days[0] || "";
+          refs.formEndDate.value = competition.days[competition.days.length - 1] || "";
+          refs.formStartTime.value = minutesToTime(competition.startMin);
+          refs.formEndTime.value = minutesToTime(competition.endMin);
+        } else {
+          refs.formName.value = "";
+          refs.formGrid.value = "10";
+          refs.formStartDate.value = "";
+          refs.formEndDate.value = "";
+          refs.formStartTime.value = "08:00";
+          refs.formEndTime.value = "18:00";
+        }
+
+        updateDaysPreview();
+        refs.modalBg.classList.remove("hidden");
+      };
+
+      const closeCompetitionModal = () => {
+        refs.modalBg.classList.add("hidden");
+        state.editingCompetitionId = null;
+      };
+
+      const saveCompetition = async () => {
+        const name = refs.formName.value.trim();
+        const days = buildDaysFromRange(refs.formStartDate.value, refs.formEndDate.value);
+        const stepGrid = Number(refs.formGrid.value);
+        const startMin = timeToMinutes(refs.formStartTime.value);
+        const endMin = timeToMinutes(refs.formEndTime.value);
+
+        if (!name || days.length === 0 || !stepGrid || startMin == null || endMin == null) {
+          throw new Error("Preencha todos os campos obrigatorios.");
+        }
+
+        const payload = { name, days, stepGrid, startMin, endMin };
+        if (state.editingCompetitionId) {
+          await requestJson(`/api/competitions/${encodeURIComponent(state.editingCompetitionId)}`, {
+            method: "PUT",
+            body: JSON.stringify(payload),
+          });
+          showNotice(refs.appNotice, "Campeonato atualizado com sucesso.");
+        } else {
+          await requestJson("/api/competitions", {
+            method: "POST",
+            body: JSON.stringify(payload),
+          });
+          showNotice(refs.appNotice, "Campeonato criado com sucesso.");
+        }
+        closeCompetitionModal();
+        await loadCompetitions();
+      };
+
+      const removeCompetition = async (competitionId) => {
+        const confirmed = window.confirm("Deseja realmente remover este campeonato?");
+        if (!confirmed) return;
+        await requestJson(`/api/competitions/${encodeURIComponent(competitionId)}`, { method: "DELETE" });
+        showNotice(refs.appNotice, "Campeonato removido com sucesso.");
+        await loadCompetitions();
+      };
+
+      const openDetails = (competition) => {
+        refs.detailContent.innerHTML = `
+          <div class="row">
+            <div class="field"><label>ID</label><input readonly value="${escapeHtml(competition.id)}" /></div>
+            <div class="field"><label>Nome</label><input readonly value="${escapeHtml(competition.name)}" /></div>
+          </div>
+          <div class="row">
+            <div class="field"><label>Periodo</label><input readonly value="${formatDateBr(competition.days[0])} ate ${formatDateBr(competition.days[competition.days.length - 1])}" /></div>
+            <div class="field"><label>Janela</label><input readonly value="${minutesToTime(competition.startMin)} - ${minutesToTime(competition.endMin)}" /></div>
+            <div class="field"><label>Grid</label><input readonly value="${competition.stepGrid} min" /></div>
+          </div>
+          <div class="notice">
+            Para gerar o cronograma no dashboard legado, use o <strong>competitionId</strong> acima com
+            o mesmo usuario logado na fase de autenticacao.
+          </div>
+        `;
+        refs.detailModalBg.classList.remove("hidden");
+      };
+
+      const authenticateFromToken = async () => {
+        if (!state.token) {
+          setAuthenticatedView(false);
+          return;
+        }
+        try {
+          const data = await requestJson("/api/auth/me");
+          state.user = data.user;
+          refs.sidebarUserName.textContent = data.user.name;
+          refs.sidebarUserEmail.textContent = data.user.email;
+          setAuthenticatedView(true);
+          await loadCompetitions();
+        } catch {
+          clearSession();
+          showNotice(refs.authNotice, "Sua sessao expirou. Faca login novamente.", "error");
+        }
+      };
+
+      refs.tabLogin.addEventListener("click", () => {
+        refs.tabLogin.classList.add("btn-primary");
+        refs.tabSignup.classList.remove("btn-primary");
+        refs.loginForm.classList.remove("hidden");
+        refs.signupForm.classList.add("hidden");
+        hideNotice(refs.authNotice);
+      });
+
+      refs.tabSignup.addEventListener("click", () => {
+        refs.tabSignup.classList.add("btn-primary");
+        refs.tabLogin.classList.remove("btn-primary");
+        refs.signupForm.classList.remove("hidden");
+        refs.loginForm.classList.add("hidden");
+        hideNotice(refs.authNotice);
+      });
+
+      refs.loginForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        try {
+          hideNotice(refs.authNotice);
+          const payload = {
+            email: document.getElementById("login_email").value.trim(),
+            password: document.getElementById("login_password").value,
+          };
+          const data = await requestJson("/api/auth/login", {
+            method: "POST",
+            body: JSON.stringify(payload),
+          });
+          setSession(data.token, data.user);
+          setAuthenticatedView(true);
+          await loadCompetitions();
+        } catch (error) {
+          showNotice(refs.authNotice, error.message || "Falha no login.", "error");
+        }
+      });
+
+      refs.signupForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        try {
+          hideNotice(refs.authNotice);
+          const payload = {
+            name: document.getElementById("signup_name").value.trim(),
+            email: document.getElementById("signup_email").value.trim(),
+            password: document.getElementById("signup_password").value,
+            organizationName: document.getElementById("signup_org").value.trim() || undefined,
+          };
+          const data = await requestJson("/api/auth/signup", {
+            method: "POST",
+            body: JSON.stringify(payload),
+          });
+          setSession(data.token, data.user);
+          setAuthenticatedView(true);
+          await loadCompetitions();
+        } catch (error) {
+          showNotice(refs.authNotice, error.message || "Falha no cadastro.", "error");
+        }
+      });
+
+      refs.searchInput.addEventListener("input", applySearch);
+      refs.formStartDate.addEventListener("change", updateDaysPreview);
+      refs.formEndDate.addEventListener("change", updateDaysPreview);
+
+      refs.tbody.addEventListener("click", async (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) return;
+        const button = target.closest("button[data-action]");
+        if (!button) return;
+        const action = button.getAttribute("data-action");
+        const id = button.getAttribute("data-id");
+        if (!action || !id) return;
+
+        const competition = state.competitions.find((item) => item.id === id);
+        if (!competition) return;
+
+        try {
+          if (action === "view") {
+            openDetails(competition);
+          } else if (action === "edit") {
+            openCompetitionModal("edit", competition);
+          } else if (action === "remove") {
+            await removeCompetition(id);
+          }
+        } catch (error) {
+          showNotice(refs.appNotice, error.message || "Falha ao executar acao.", "error");
+        }
+      });
+
+      document.getElementById("new_competition_button").addEventListener("click", () => {
+        hideNotice(refs.appNotice);
+        openCompetitionModal("create");
+      });
+      document.getElementById("competition_cancel_button").addEventListener("click", closeCompetitionModal);
+      document.getElementById("competition_save_button").addEventListener("click", async () => {
+        try {
+          await saveCompetition();
+        } catch (error) {
+          showNotice(refs.appNotice, error.message || "Falha ao salvar campeonato.", "error");
+        }
+      });
+      document.getElementById("detail_close_button").addEventListener("click", () => {
+        refs.detailModalBg.classList.add("hidden");
+      });
+      document.getElementById("open_legacy_button").addEventListener("click", () => {
+        window.open("/dashboard", "_blank");
+      });
+      document.getElementById("logout_button").addEventListener("click", () => {
+        clearSession();
+        showNotice(refs.authNotice, "Sessao encerrada.");
+      });
+
+      void authenticateFromToken();
+    </script>
+  </body>
+</html>

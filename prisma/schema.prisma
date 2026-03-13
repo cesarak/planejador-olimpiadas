@@ -1,0 +1,141 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id               String            @id @default(cuid())
+  name             String
+  users            AppUser[]
+  competitions     Competition[]
+  teams            Team[]
+  modalities       Modality[]
+  locals           Local[]
+  matches          Match[]
+  scheduleVersions ScheduleVersion[]
+  createdAt        DateTime          @default(now())
+}
+
+model Competition {
+  id               String            @id @default(cuid())
+  name             String
+  tenantId         String
+  tenant           Tenant            @relation(fields: [tenantId], references: [id])
+  createdByUserId  String?
+  createdByUser    AppUser?          @relation(fields: [createdByUserId], references: [id])
+  startMin         Int
+  endMin           Int
+  stepGrid         Int
+  days             String[]
+  matches          Match[]
+  scheduleVersions ScheduleVersion[]
+  createdAt        DateTime          @default(now())
+
+  @@index([tenantId, createdByUserId])
+}
+
+model AppUser {
+  id           String        @id @default(cuid())
+  tenantId     String
+  tenant       Tenant        @relation(fields: [tenantId], references: [id])
+  name         String
+  email        String        @unique
+  passwordHash String
+  competitions Competition[]
+  createdAt    DateTime      @default(now())
+}
+
+model Team {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  name      String
+  category  String
+  gender    String
+  createdAt DateTime @default(now())
+}
+
+model Modality {
+  id         String   @id @default(cuid())
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  name       String
+  durationMin Int
+  genderRule String
+  createdAt  DateTime @default(now())
+}
+
+model Local {
+  id                 String   @id @default(cuid())
+  tenantId           String
+  tenant             Tenant   @relation(fields: [tenantId], references: [id])
+  name               String
+  allowedModalities  String[]
+  allowedCategories  String[]
+  createdAt          DateTime @default(now())
+}
+
+model Match {
+  id             String           @id @default(cuid())
+  tenantId       String
+  tenant         Tenant           @relation(fields: [tenantId], references: [id])
+  competitionId  String
+  competition    Competition      @relation(fields: [competitionId], references: [id])
+  sourceMatchId  String
+  teamAId        String
+  teamBId        String
+  category       String
+  modalityId     String
+  modalityName   String
+  phase          String
+  durationMin    Int
+  genderRule     String
+  modalityKey    String
+  scheduledItems ScheduledMatch[]
+  createdAt      DateTime         @default(now())
+
+  @@index([tenantId, competitionId])
+  @@unique([competitionId, sourceMatchId])
+}
+
+model ScheduleVersion {
+  id              String           @id @default(cuid())
+  tenantId        String
+  tenant          Tenant           @relation(fields: [tenantId], references: [id])
+  competitionId   String
+  competition     Competition      @relation(fields: [competitionId], references: [id])
+  name            String
+  status          String           @default("DRAFT")
+  generatedAt     DateTime         @default(now())
+  schedulingInput Json
+  kpis            Json
+  createdBy       String?
+  scheduledItems  ScheduledMatch[]
+  createdAt       DateTime         @default(now())
+
+  @@index([tenantId, competitionId])
+}
+
+model ScheduledMatch {
+  id                String          @id @default(cuid())
+  scheduleVersionId String
+  scheduleVersion   ScheduleVersion @relation(fields: [scheduleVersionId], references: [id])
+  matchId           String
+  match             Match            @relation(fields: [matchId], references: [id])
+  status            String
+  reason            String?
+  day               String?
+  startMin          Int?
+  endMin            Int?
+  localId           String?
+  localName         String?
+  span              Int?
+  score             Float?
+  createdAt         DateTime        @default(now())
+
+  @@index([scheduleVersionId, status])
+}
