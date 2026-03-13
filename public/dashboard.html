@@ -416,7 +416,6 @@
             <input
               id="data_inicio"
               type="date"
-              value="2026-03-12"
               onchange="updateDaysPreview()"
             />
           </div>
@@ -425,7 +424,6 @@
             <input
               id="data_fim"
               type="date"
-              value="2026-03-12"
               onchange="updateDaysPreview()"
             />
           </div>
@@ -676,6 +674,52 @@
       let selectedGradeDayTab = "";
       let lastScheduleResult = null;
 
+      function formatDateISO(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      }
+
+      function getTodayISODate() {
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        return formatDateISO(now);
+      }
+
+      function addDaysISODate(isoDate, daysToAdd) {
+        const base = new Date(`${isoDate}T00:00:00`);
+        base.setDate(base.getDate() + daysToAdd);
+        return formatDateISO(base);
+      }
+
+      function normalizeCompetitionDates() {
+        const startInput = document.getElementById("data_inicio");
+        const endInput = document.getElementById("data_fim");
+        if (!startInput || !endInput) {
+          return;
+        }
+
+        const today = getTodayISODate();
+        let start = (startInput.value || "").trim();
+        let end = (endInput.value || "").trim();
+
+        if (!start || start < today) {
+          start = today;
+        }
+        if (!end) {
+          end = addDaysISODate(start, 3);
+        }
+        if (end < start) {
+          end = start;
+        }
+
+        startInput.min = today;
+        endInput.min = start;
+        startInput.value = start;
+        endInput.value = end;
+      }
+
       function randomId(prefix) {
         return prefix + "-" + Math.random().toString(36).slice(2, 8);
       }
@@ -837,6 +881,10 @@
 
       function addBlock(data = {}) {
         const tbody = document.querySelector("#bloqueios_table tbody");
+        const defaultBlockDay =
+          data.dia ||
+          document.getElementById("data_inicio")?.value ||
+          getTodayISODate();
         const inicioValue =
           typeof data.inicio === "number"
             ? minutesToInputTime(data.inicio)
@@ -847,7 +895,7 @@
             : data.fim || "10:10";
         const tr = document.createElement("tr");
         tr.innerHTML = `
-          <td><input data-k="dia" value="${data.dia || "2026-03-12"}" /></td>
+          <td><input data-k="dia" value="${defaultBlockDay}" /></td>
           <td><input data-k="inicio" type="time" value="${inicioValue}" /></td>
           <td><input data-k="fim" type="time" value="${fimValue}" /></td>
           <td><input data-k="motivo" value="${
@@ -1190,6 +1238,7 @@
       }
 
       function updateDaysPreview() {
+        normalizeCompetitionDates();
         const start = document.getElementById("data_inicio").value;
         const end = document.getElementById("data_fim").value;
         const days = buildDaysFromRange(start, end);
@@ -1558,7 +1607,7 @@
           .getElementById("grade_search")
           .value.trim()
           .toLowerCase();
-        const filtered = getSelectedGradeDays(grade);
+        const filtered = Array.isArray(grade) ? grade : [];
         const rows = [["dia", "inicio", "fim", "quadra", "tipo", "descricao"]];
 
         filtered.forEach((dayItem) => {
@@ -1649,14 +1698,27 @@
           document.getElementById("grade_court_filter").value;
         const searchTerm = document.getElementById("grade_search").value.trim();
         const titleParts = [
-          selectedGradeDayTab
-            ? `Dia: ${formatDateBR(selectedGradeDayTab)}`
-            : "Dia nao selecionado",
+          "Dias: todos",
           selectedCourt ? `Quadra: ${selectedCourt}` : "Todas as quadras",
           searchTerm ? `Busca: ${searchTerm}` : "Sem busca",
         ];
         const title = `Grade - ${titleParts.join(" | ")}`;
-        const html = document.getElementById("grade_container").innerHTML;
+        const printableChunks = lastRenderedGrade.map((dayItem) => {
+          const mergedTable = renderMergedDayTable(
+            dayItem,
+            selectedCourt,
+            searchTerm.toLowerCase()
+          );
+          return `
+            <div class="day-grid">
+              <h3 style="margin:0 0 8px;">Dia: ${escapeHtml(
+                formatDateBR(dayItem.dia)
+              )}</h3>
+              ${mergedTable}
+            </div>
+          `;
+        });
+        const html = printableChunks.join("");
         const win = window.open("", "_blank");
         if (!win) {
           setResponse({
@@ -1757,9 +1819,11 @@
           document.getElementById("data_inicio").value = dias[0];
           document.getElementById("data_fim").value = dias[dias.length - 1];
         } else {
-          document.getElementById("data_inicio").value = "2026-03-12";
-          document.getElementById("data_fim").value = "2026-03-12";
+          const today = getTodayISODate();
+          document.getElementById("data_inicio").value = today;
+          document.getElementById("data_fim").value = addDaysISODate(today, 3);
         }
+        normalizeCompetitionDates();
 
         document.getElementById("descanso_minimo").value =
           data.parametros?.descanso_minimo ?? 0;
@@ -1844,8 +1908,9 @@
         modalidades_permitidas: "*",
         categorias_permitidas: "*",
       });
+      normalizeCompetitionDates();
       addBlock({
-        dia: "2026-03-12",
+        dia: document.getElementById("data_inicio").value,
         inicio: "10:00",
         fim: "10:20",
         motivo: "Recreio",
