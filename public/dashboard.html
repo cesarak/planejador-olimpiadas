@@ -218,6 +218,76 @@
       .critical-alert.hidden {
         display: none;
       }
+      .critical-alert .critical-action-button {
+        background: linear-gradient(180deg, #ff6b87 0%, #e74a68 100%);
+        border-color: #ff8aa0;
+        color: #fff4f7;
+        font-weight: 700;
+      }
+      .critical-alert .critical-action-button:hover {
+        background: linear-gradient(180deg, #ff7d96 0%, #ef5674 100%);
+        border-color: #ff9aad;
+      }
+      .critical-alert .critical-action-button:active {
+        transform: translateY(1px);
+      }
+      .unallocated-panel {
+        margin-top: 10px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px 12px;
+        background: #101428;
+      }
+      .unallocated-panel.hidden {
+        display: none;
+      }
+      .unallocated-list {
+        margin: 8px 0 0;
+        padding-left: 18px;
+      }
+      .unallocated-list li {
+        margin-bottom: 6px;
+      }
+      .presence-alert {
+        margin-top: 10px;
+        border: 1px solid #d2a84c;
+        background: rgba(210, 168, 76, 0.14);
+        color: #f9dd9a;
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .presence-alert.hidden {
+        display: none;
+      }
+      .presence-action-button {
+        background: linear-gradient(180deg, #ffb55e 0%, #e59a3f 100%);
+        border-color: #f0b565;
+        color: #2f1f06;
+        font-weight: 700;
+      }
+      .presence-action-button:hover {
+        background: linear-gradient(180deg, #ffc071 0%, #eea74d 100%);
+        border-color: #f6c177;
+      }
+      .presence-panel {
+        margin-top: 10px;
+        border: 1px solid #d2a84c;
+        border-radius: 10px;
+        padding: 10px 12px;
+        background: #1a1624;
+      }
+      .presence-panel.hidden {
+        display: none;
+      }
+      .presence-list {
+        margin: 8px 0 0;
+        padding-left: 18px;
+      }
+      .presence-list li {
+        margin-bottom: 6px;
+      }
       .bracket-group {
         border: 1px solid var(--border);
         border-radius: 10px;
@@ -421,11 +491,7 @@
           </div>
           <div class="field">
             <label for="data_fim">Data de termino</label>
-            <input
-              id="data_fim"
-              type="date"
-              onchange="updateDaysPreview()"
-            />
+            <input id="data_fim" type="date" onchange="updateDaysPreview()" />
           </div>
           <div class="field" style="min-width: 220px">
             <label>Datas da Competição</label>
@@ -545,6 +611,44 @@
       </div>
 
       <div class="card">
+        <h2>Restricoes por Categoria</h2>
+        <p class="small">
+          Defina em quais dias e horarios cada categoria pode jogar.
+        </p>
+        <table class="table" id="restricoes_categoria_table">
+          <thead>
+            <tr>
+              <th>Categoria</th>
+              <th>Dias permitidos</th>
+              <th>Inicio</th>
+              <th>Fim</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div class="actions" style="margin-top: 10px">
+          <button type="button" onclick="addCategoryRestriction()">
+            Adicionar Restricao
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Presenca de Todas as Categorias (opcional)</h2>
+        <p class="small">
+          Em cada dia selecionado abaixo, o sistema tentara alocar ao menos 1
+          jogo de cada categoria para garantir presenca no evento.
+        </p>
+        <div class="row">
+          <div class="field" style="max-width: 420px">
+            <label for="presenca_categorias_dias">Dias obrigatorios</label>
+            <select id="presenca_categorias_dias" multiple></select>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
         <h2>Persistencia (opcional)</h2>
         <div class="row">
           <div class="field" style="max-width: 220px">
@@ -603,6 +707,9 @@
         <div class="kpis" id="kpis"></div>
         <div id="critical_alert" class="critical-alert hidden"></div>
         <div id="occupancy_alert" class="occupancy-alert hidden"></div>
+        <div id="unallocated_panel" class="unallocated-panel hidden"></div>
+        <div id="presence_alert" class="presence-alert hidden"></div>
+        <div id="presence_panel" class="presence-panel hidden"></div>
       </div>
 
       <div class="card">
@@ -744,7 +851,7 @@
           row.remove();
         }
         if (shouldRefreshCategories) {
-          updateModalityCategorySelectors();
+          refreshCategoryDependentSelectors();
         }
       }
 
@@ -765,6 +872,13 @@
         return Array.from(select.selectedOptions).map((option) => option.value);
       }
 
+      function getCompetitionDaysSelection() {
+        return buildDaysFromRange(
+          document.getElementById("data_inicio").value,
+          document.getElementById("data_fim").value
+        );
+      }
+
       function updateModalityCategorySelectors() {
         const categories = getUniqueTeamCategories();
         document
@@ -782,6 +896,68 @@
               })
               .join("");
           });
+      }
+
+      function updateCategoryRestrictionCategorySelectors() {
+        const categories = getUniqueTeamCategories();
+        document
+          .querySelectorAll(
+            "#restricoes_categoria_table tbody tr select[data-k='categoria']"
+          )
+          .forEach((select) => {
+            const previous = select.value;
+            const hasPrevious = categories.includes(previous);
+            select.innerHTML = categories
+              .map((category) => {
+                const selected = category === previous ? "selected" : "";
+                return `<option value="${category}" ${selected}>${category}</option>`;
+              })
+              .join("");
+            if (!hasPrevious && categories.length > 0) {
+              select.value = categories[0];
+            }
+          });
+      }
+
+      function updateCategoryRestrictionDaySelectors() {
+        const days = getCompetitionDaysSelection();
+        document
+          .querySelectorAll(
+            "#restricoes_categoria_table tbody tr select[data-k='dias']"
+          )
+          .forEach((select) => {
+            const previousSelection = new Set(getSelectedMultiValues(select));
+            select.innerHTML = days
+              .map((day) => {
+                const selected = previousSelection.has(day) ? "selected" : "";
+                return `<option value="${day}" ${selected}>${formatDateBR(
+                  day
+                )}</option>`;
+              })
+              .join("");
+          });
+      }
+
+      function updateMandatoryPresenceDaySelector() {
+        const select = document.getElementById("presenca_categorias_dias");
+        if (!select) {
+          return;
+        }
+        const days = getCompetitionDaysSelection();
+        const previousSelection = new Set(getSelectedMultiValues(select));
+        select.innerHTML = days
+          .map((day) => {
+            const selected = previousSelection.has(day) ? "selected" : "";
+            return `<option value="${day}" ${selected}>${formatDateBR(
+              day
+            )}</option>`;
+          })
+          .join("");
+      }
+
+      function refreshCategoryDependentSelectors() {
+        updateModalityCategorySelectors();
+        updateCategoryRestrictionCategorySelectors();
       }
 
       function addTeam(data = {}) {
@@ -810,9 +986,9 @@
         const categoryInput = tr.querySelector("[data-k='categoria']");
         categoryInput.addEventListener(
           "input",
-          updateModalityCategorySelectors
+          refreshCategoryDependentSelectors
         );
-        updateModalityCategorySelectors();
+        refreshCategoryDependentSelectors();
       }
 
       function addModality(data = {}) {
@@ -860,6 +1036,58 @@
         Array.from(multi.options).forEach((option) => {
           option.selected = selected.has(option.value);
         });
+      }
+
+      function addCategoryRestriction(data = {}) {
+        const categories = getUniqueTeamCategories();
+        const selectedCategory =
+          data.categoria && categories.includes(data.categoria)
+            ? data.categoria
+            : categories[0] || "";
+        const days = getCompetitionDaysSelection();
+        const selectedDays = new Set(data.dias || []);
+        const inicioValue =
+          typeof data.inicio_min === "number"
+            ? minutesToInputTime(data.inicio_min)
+            : data.inicio || "08:00";
+        const fimValue =
+          typeof data.fim_min === "number"
+            ? minutesToInputTime(data.fim_min)
+            : data.fim || "12:00";
+
+        const tbody = document.querySelector(
+          "#restricoes_categoria_table tbody"
+        );
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>
+            <select data-k="categoria">
+              ${categories
+                .map((category) => {
+                  const selected =
+                    category === selectedCategory ? "selected" : "";
+                  return `<option value="${category}" ${selected}>${category}</option>`;
+                })
+                .join("")}
+            </select>
+          </td>
+          <td>
+            <select data-k="dias" multiple>
+              ${days
+                .map((day) => {
+                  const selected = selectedDays.has(day) ? "selected" : "";
+                  return `<option value="${day}" ${selected}>${formatDateBR(
+                    day
+                  )}</option>`;
+                })
+                .join("")}
+            </select>
+          </td>
+          <td><input data-k="inicio_min" type="time" value="${inicioValue}" /></td>
+          <td><input data-k="fim_min" type="time" value="${fimValue}" /></td>
+          <td><button type="button" class="danger" onclick="this.closest('tr').remove()">Remover</button></td>
+        `;
+        tbody.appendChild(tr);
       }
 
       function addLocal(data = {}) {
@@ -955,6 +1183,28 @@
           motivo: tr.querySelector("[data-k='motivo']").value.trim(),
         }));
 
+        const restricoes_categoria = readRows(
+          "#restricoes_categoria_table tbody tr",
+          (tr) => {
+            const dias = getSelectedMultiValues(
+              tr.querySelector("[data-k='dias']")
+            );
+            return {
+              categoria: tr.querySelector("[data-k='categoria']").value.trim(),
+              dias,
+              inicio_min: inputTimeToMinutes(
+                tr.querySelector("[data-k='inicio_min']").value
+              ),
+              fim_min: inputTimeToMinutes(
+                tr.querySelector("[data-k='fim_min']").value
+              ),
+            };
+          }
+        ).filter((item) => item.categoria && item.dias.length > 0);
+        const presencaCategoriasDias = getSelectedMultiValues(
+          document.getElementById("presenca_categorias_dias")
+        );
+
         const competicao = {
           inicio_min: inputTimeToMinutes(
             document.getElementById("inicio_min").value
@@ -992,6 +1242,11 @@
           modalidades,
           locais,
           bloqueios,
+          restricoes_categoria,
+          presenca_categorias:
+            presencaCategoriasDias.length > 0
+              ? { dias: presencaCategoriasDias }
+              : undefined,
           competicao,
           parametros,
           persistencia,
@@ -1002,7 +1257,14 @@
         const container = document.getElementById("kpis");
         const criticalBox = document.getElementById("critical_alert");
         const alertBox = document.getElementById("occupancy_alert");
+        const unallocatedPanel = document.getElementById("unallocated_panel");
+        const presenceAlert = document.getElementById("presence_alert");
+        const presencePanel = document.getElementById("presence_panel");
         container.innerHTML = "";
+        presenceAlert.classList.add("hidden");
+        presenceAlert.innerHTML = "";
+        presencePanel.classList.add("hidden");
+        presencePanel.innerHTML = "";
         Object.entries(kpis).forEach(([key, value]) => {
           const div = document.createElement("div");
           div.className = "kpi";
@@ -1013,7 +1275,16 @@
         const totalNaoAlocados = Number(kpis.total_nao_alocados);
         if (Number.isFinite(totalNaoAlocados) && totalNaoAlocados > 0) {
           criticalBox.classList.remove("hidden");
-          criticalBox.textContent = `ERRO CRITICO: ${totalNaoAlocados} jogo(s) nao foram alocados. O cronograma possui falha de capacidade/restricoes e precisa ser revisado.`;
+          criticalBox.innerHTML = `
+            <div>ERRO CRITICO: ${totalNaoAlocados} jogo(s) nao foram alocados. O cronograma possui falha de capacidade/restricoes e precisa ser revisado.</div>
+            <div style="margin-top:8px;">
+              <button type="button" class="critical-action-button" onclick="toggleUnallocatedMatches()">
+                Ver jogos nao alocados
+              </button>
+            </div>
+          `;
+          unallocatedPanel.classList.add("hidden");
+          unallocatedPanel.innerHTML = "";
           alertBox.classList.add("hidden");
           alertBox.textContent = "";
           alertBox.classList.remove(
@@ -1025,7 +1296,9 @@
           return;
         } else {
           criticalBox.classList.add("hidden");
-          criticalBox.textContent = "";
+          criticalBox.innerHTML = "";
+          unallocatedPanel.classList.add("hidden");
+          unallocatedPanel.innerHTML = "";
         }
 
         const occupancy = Number(kpis.taxa_ocupacao_aprox);
@@ -1063,6 +1336,133 @@
             2
           )}%). O cronograma esta com baixa eficiencia e requer replanejamento.`;
         }
+      }
+
+      function getMandatoryPresenceFailures() {
+        const warnings = lastScheduleResult?.avisos || [];
+        const marker = "Presenca obrigatoria nao atendida para categoria";
+        return warnings
+          .filter(
+            (warning) => typeof warning === "string" && warning.includes(marker)
+          )
+          .map((warning) => {
+            const parsed = warning.match(
+              /categoria "(.+)" no dia "(\d{4}-\d{2}-\d{2})":\s*(.+)$/i
+            );
+            if (!parsed) {
+              return {
+                categoria: "-",
+                dia: "-",
+                motivo: warning,
+              };
+            }
+            return {
+              categoria: parsed[1],
+              dia: parsed[2],
+              motivo: parsed[3],
+            };
+          });
+      }
+
+      function renderPresenceAlert() {
+        const presenceAlert = document.getElementById("presence_alert");
+        const presencePanel = document.getElementById("presence_panel");
+        const failures = getMandatoryPresenceFailures();
+        if (failures.length === 0) {
+          presenceAlert.classList.add("hidden");
+          presenceAlert.innerHTML = "";
+          presencePanel.classList.add("hidden");
+          presencePanel.innerHTML = "";
+          return;
+        }
+
+        presenceAlert.classList.remove("hidden");
+        presenceAlert.innerHTML = `
+          <div>ATENCAO: presenca obrigatoria nao atendida para ${failures.length} categoria(s)/dia(s).</div>
+          <div style="margin-top:8px;">
+            <button type="button" class="presence-action-button" onclick="togglePresenceFailures()">
+              Ver categorias nao alocadas
+            </button>
+          </div>
+        `;
+      }
+
+      function toggleUnallocatedMatches() {
+        const unallocatedPanel = document.getElementById("unallocated_panel");
+        const items = lastScheduleResult?.nao_alocados || [];
+        if (!Array.isArray(items) || items.length === 0) {
+          unallocatedPanel.classList.remove("hidden");
+          unallocatedPanel.innerHTML =
+            '<div class="small">Nao ha jogos nao alocados para exibir.</div>';
+          return;
+        }
+
+        if (!unallocatedPanel.classList.contains("hidden")) {
+          unallocatedPanel.classList.add("hidden");
+          return;
+        }
+
+        const listHtml = items
+          .map((item) => {
+            const confronto = item?.confronto || {};
+            const timeA = confronto?.time_a?.nome || "?";
+            const timeB = confronto?.time_b?.nome || "?";
+            const modalidade = confronto?.modalidade || "-";
+            const categoria = confronto?.categoria || "-";
+            const fase = confronto?.fase || "-";
+            const motivo = item?.motivo || "Motivo nao informado.";
+            return `<li><strong>${escapeHtml(
+              modalidade
+            )}</strong> | ${escapeHtml(categoria)} | ${escapeHtml(
+              fase
+            )}: ${escapeHtml(timeA)} x ${escapeHtml(
+              timeB
+            )}<br/><span class="small">Motivo: ${escapeHtml(
+              motivo
+            )}</span></li>`;
+          })
+          .join("");
+
+        unallocatedPanel.innerHTML = `
+          <div><strong>Jogos nao alocados</strong></div>
+          <ol class="unallocated-list">${listHtml}</ol>
+        `;
+        unallocatedPanel.classList.remove("hidden");
+      }
+
+      function togglePresenceFailures() {
+        const presencePanel = document.getElementById("presence_panel");
+        const failures = getMandatoryPresenceFailures();
+        if (failures.length === 0) {
+          presencePanel.classList.remove("hidden");
+          presencePanel.innerHTML =
+            '<div class="small">Nao ha falhas de presenca obrigatoria para exibir.</div>';
+          return;
+        }
+
+        if (!presencePanel.classList.contains("hidden")) {
+          presencePanel.classList.add("hidden");
+          return;
+        }
+
+        const listHtml = failures
+          .map(
+            (item) =>
+              `<li><strong>${escapeHtml(
+                item.categoria
+              )}</strong> | Dia: ${escapeHtml(
+                formatDateBR(item.dia)
+              )}<br/><span class="small">Motivo: ${escapeHtml(
+                item.motivo
+              )}</span></li>`
+          )
+          .join("");
+
+        presencePanel.innerHTML = `
+          <div><strong>Categorias com presenca obrigatoria nao atendida</strong></div>
+          <ol class="presence-list">${listHtml}</ol>
+        `;
+        presencePanel.classList.remove("hidden");
       }
 
       function setResponse(obj) {
@@ -1239,6 +1639,8 @@
 
       function updateDaysPreview() {
         normalizeCompetitionDates();
+        updateCategoryRestrictionDaySelectors();
+        updateMandatoryPresenceDaySelector();
         const start = document.getElementById("data_inicio").value;
         const end = document.getElementById("data_fim").value;
         const days = buildDaysFromRange(start, end);
@@ -1770,11 +2172,13 @@
           if (json && json.resultado && json.resultado.kpis) {
             lastScheduleResult = json.resultado;
             setKpis(json.resultado.kpis);
+            renderPresenceAlert();
             renderGrade(json.resultado.grade);
             renderBrackets(json.resultado);
           } else {
             lastScheduleResult = null;
             setKpis({});
+            renderPresenceAlert();
             renderGrade([]);
             renderBrackets(null);
           }
@@ -1782,6 +2186,7 @@
           lastScheduleResult = null;
           setResponse({ error: String(error) });
           setKpis({});
+          renderPresenceAlert();
           renderGrade([]);
           renderBrackets(null);
         }
@@ -1848,12 +2253,23 @@
         clearRows("#modalidades_table tbody");
         clearRows("#locais_table tbody");
         clearRows("#bloqueios_table tbody");
+        clearRows("#restricoes_categoria_table tbody");
 
         (data.teams || []).forEach(addTeam);
         (data.modalidades || []).forEach(addModality);
         (data.locais || []).forEach(addLocal);
         (data.bloqueios || []).forEach(addBlock);
-        updateModalityCategorySelectors();
+        (data.restricoes_categoria || []).forEach(addCategoryRestriction);
+        refreshCategoryDependentSelectors();
+        updateCategoryRestrictionDaySelectors();
+        updateMandatoryPresenceDaySelector();
+        const presenceDays = data.presenca_categorias?.dias || [];
+        const presenceSelect = document.getElementById(
+          "presenca_categorias_dias"
+        );
+        Array.from(presenceSelect.options).forEach((option) => {
+          option.selected = presenceDays.includes(option.value);
+        });
 
         updateDaysPreview();
         setResponse({ ok: true, message: "Rascunho carregado." });
@@ -1864,24 +2280,28 @@
         setResponse({ ok: true, message: "Rascunho removido." });
       }
 
-      addTeam({ id: "team-1", nome: "A", categoria: "5o Ano", genero: "M" });
-      addTeam({ id: "team-2", nome: "B", categoria: "5o Ano", genero: "M" });
-      addTeam({ id: "team-3", nome: "C", categoria: "5o Ano", genero: "M" });
-      addTeam({ id: "team-7", nome: "D", categoria: "5o Ano", genero: "M" });
-      addTeam({ id: "team-4", nome: "A", categoria: "5o Ano", genero: "F" });
-      addTeam({ id: "team-5", nome: "B", categoria: "5o Ano", genero: "F" });
-      addTeam({ id: "team-6", nome: "C", categoria: "5o Ano", genero: "F" });
-      addTeam({ id: "team-8", nome: "D", categoria: "5o Ano", genero: "F" });
-      addTeam({ id: "team-10", nome: "A", categoria: "6o Ano", genero: "M" });
-      addTeam({ id: "team-11", nome: "B", categoria: "6o Ano", genero: "M" });
-      addTeam({ id: "team-12", nome: "C", categoria: "6o Ano", genero: "M" });
-      addTeam({ id: "team-14", nome: "D", categoria: "6o Ano", genero: "M" });
-      addTeam({ id: "team-15", nome: "E", categoria: "6o Ano", genero: "M" });
-      addTeam({ id: "team-16", nome: "A", categoria: "6o Ano", genero: "F" });
-      addTeam({ id: "team-17", nome: "B", categoria: "6o Ano", genero: "F" });
-      addTeam({ id: "team-18", nome: "C", categoria: "6o Ano", genero: "F" });
-      addTeam({ id: "team-19", nome: "D", categoria: "6o Ano", genero: "F" });
-      addTeam({ id: "team-20", nome: "E", categoria: "6o Ano", genero: "F" });
+      const defaultCategoryTeams = [
+        { categoria: "6° ano", nomes: ["A", "B", "C"] },
+        { categoria: "7° ano", nomes: ["A", "B", "C"] },
+        { categoria: "8° ano", nomes: ["A", "B", "C", "D"] },
+        { categoria: "9° ano", nomes: ["A", "B", "C", "D", "E"] },
+        { categoria: "1ª série", nomes: ["A", "B", "C", "D", "E"] },
+        { categoria: "2ª serie", nomes: ["A", "B", "C", "D", "E"] },
+      ];
+      let defaultTeamIdCounter = 1;
+      for (const item of defaultCategoryTeams) {
+        for (const genero of ["M", "F"]) {
+          for (const teamName of item.nomes) {
+            addTeam({
+              id: `team-${defaultTeamIdCounter}`,
+              nome: teamName,
+              categoria: item.categoria,
+              genero,
+            });
+            defaultTeamIdCounter += 1;
+          }
+        }
+      }
       addModality({
         id: "mod-1",
         nome: "Futsal",
@@ -1892,6 +2312,13 @@
       addModality({
         id: "mod-2",
         nome: "Volei",
+        duracao_min: 20,
+        regra_genero: "separado",
+        formato: "todos_contra_todos",
+      });
+      addModality({
+        id: "mod-3",
+        nome: "Basquete",
         duracao_min: 20,
         regra_genero: "separado",
         formato: "todos_contra_todos",
