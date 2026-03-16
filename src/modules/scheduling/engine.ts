@@ -25,6 +25,12 @@ interface DemandAccumulator {
   demanda_ajustada_min: number;
 }
 
+interface CategoryWindowRule {
+  dias: Set<string>;
+  inicio_min: number;
+  fim_min: number;
+}
+
 const keyByCategoryAndModality = (categoria: string, modalityId: string): string =>
   `${categoria}::${modalityId}`;
 const keyByModeAndCategory = (modalityId: string, category: string): string =>
@@ -826,6 +832,78 @@ export const buildSchedulePreview = (input: SchedulingInput): SchedulingResult =
     (dayIndexByName.get(day) ?? 0) * 1440 + minuteOfDay;
   const bracketBaseKey = (match: MatchGenerated): string => match.chave_modalidade;
   const timelineKey = (day: string, localId: string): string => `${day}::${localId}`;
+  const categoryWindowRulesByKey = new Map<string, CategoryWindowRule[]>();
+  for (const restriction of input.restricoes_categoria ?? []) {
+    const key = normalizeTextKey(restriction.categoria);
+    if (!key) {
+      continue;
+    }
+    const current = categoryWindowRulesByKey.get(key) ?? [];
+    current.push({
+      dias: new Set(restriction.dias),
+      inicio_min: restriction.inicio_min,
+      fim_min: restriction.fim_min,
+    });
+    categoryWindowRulesByKey.set(key, current);
+  }
+
+  const isInsideCategoryWindow = (
+    category: string,
+    day: string,
+    startMin: number,
+    endMin: number,
+  ): boolean => {
+    const key = normalizeTextKey(category);
+    const rules = categoryWindowRulesByKey.get(key) ?? [];
+    if (rules.length === 0) {
+      return true;
+    }
+    return rules.some(
+      (rule) =>
+        rule.dias.has(day) &&
+        startMin >= rule.inicio_min &&
+        endMin <= rule.fim_min,
+    );
+  };
+
+  const categoriesByToken = new Map<string, string>();
+  for (const match of matches) {
+    const token = normalizeTextKey(match.categoria);
+    if (token && !categoriesByToken.has(token)) {
+      categoriesByToken.set(token, match.categoria);
+    }
+  }
+  const mandatoryPresenceDays = [
+    ...new Set((input.presenca_categorias?.dias ?? []).filter((day) => dayIndexByName.has(day))),
+  ];
+  const mandatoryPresenceCount = new Map<string, number>();
+  const mandatoryPairKey = (day: string, categoryToken: string): string =>
+    `${day}::${categoryToken}`;
+  for (const day of mandatoryPresenceDays) {
+    for (const categoryToken of categoriesByToken.keys()) {
+      mandatoryPresenceCount.set(mandatoryPairKey(day, categoryToken), 0);
+    }
+  }
+  const getMissingMandatoryDaysForCategory = (category: string): string[] => {
+    if (mandatoryPresenceDays.length === 0) {
+      return [];
+    }
+    const categoryToken = normalizeTextKey(category);
+    if (!categoriesByToken.has(categoryToken)) {
+      return [];
+    }
+    return mandatoryPresenceDays.filter(
+      (day) => (mandatoryPresenceCount.get(mandatoryPairKey(day, categoryToken)) ?? 0) < 1,
+    );
+  };
+  const registerMandatoryPresence = (match: MatchGenerated, day: string): void => {
+    const categoryToken = normalizeTextKey(match.categoria);
+    const key = mandatoryPairKey(day, categoryToken);
+    if (!mandatoryPresenceCount.has(key)) {
+      return;
+    }
+    mandatoryPresenceCount.set(key, (mandatoryPresenceCount.get(key) ?? 0) + 1);
+  };
 
   const getPhaseConstraint = (
     match: MatchGenerated,
@@ -895,7 +973,10 @@ export const buildSchedulePreview = (input: SchedulingInput): SchedulingResult =
     return intervals;
   };
 
-  const findBestCandidate = (match: MatchGenerated): { candidate: Candidate | null; reason: string } => {
+  const findBestCandidate = (
+    match: MatchGenerated,
+    allowedDays?: Set<string>,
+  ): { candidate: Candidate | null; reason: string } => {
     const phaseConstraint = getPhaseConstraint(match);
     if (phaseConstraint.blockedReason) {
       return { candidate: null, reason: phaseConstraint.blockedReason };
@@ -919,6 +1000,9 @@ export const buildSchedulePreview = (input: SchedulingInput): SchedulingResult =
     let firstFailure: string | null = null;
 
     for (const day of input.competicao.dias) {
+      if (allowedDays && !allowedDays.has(day)) {
+        continue;
+      }
       for (const local of compatibleLocals) {
         for (let startSlotIndex = 0; startSlotIndex + span <= totalSlots; startSlotIndex += 1) {
           const endSlotIndexExclusive = startSlotIndex + span;
@@ -928,6 +1012,12 @@ export const buildSchedulePreview = (input: SchedulingInput): SchedulingResult =
           if (toAbsoluteMinute(day, startMin) < phaseConstraint.absoluteStartMin) {
             if (!firstFailure) {
               firstFailure = "Partida dependente de fase anterior ainda nao concluida.";
+            }
+            continue;
+          }
+          if (!isInsideCategoryWindow(match.categoria, day, startMin, endMin)) {
+            if (!firstFailure) {
+              firstFailure = "Fora da janela permitida da categoria (dia/horario).";
             }
             continue;
           }
@@ -1063,12 +1153,119 @@ export const buildSchedulePreview = (input: SchedulingInput): SchedulingResult =
       }
     }
 
+    if (!best && allowedDays && !firstFailure) {
+      return {
+        candidate: null,
+        reason: "Sem horario disponivel nos dias obrigatorios de presenca da categoria.",
+      };
+    }
     return { candidate: best, reason: toReasonByRestriction(firstFailure) };
+  };
+
+  const applyAllocation = (current: MatchGenerated, candidate: Candidate): void => {
+    const localCells = grid[candidate.dia][candidate.local.id];
+    localCells[candidate.startSlotIndex] = {
+      tipo: "confronto",
+      confronto: current,
+      dia: candidate.dia,
+      inicio: candidate.inicio,
+      fim: candidate.fim,
+      nome_quadra: candidate.local.nome,
+      local_id: candidate.local.id,
+      span: candidate.span,
+    };
+    for (let i = candidate.startSlotIndex + 1; i < candidate.endSlotIndexExclusive; i += 1) {
+      localCells[i] = { tipo: "continua" };
+    }
+
+    getTeamDayAllocations(current.time_a.id, candidate.dia).push({
+      inicio: candidate.inicio,
+      fim: candidate.fim,
+    });
+    getTeamDayAllocations(current.time_b.id, candidate.dia).push({
+      inicio: candidate.inicio,
+      fim: candidate.fim,
+    });
+    teamAllocatedGames.set(current.time_a.id, (teamAllocatedGames.get(current.time_a.id) ?? 0) + 1);
+    teamAllocatedGames.set(current.time_b.id, (teamAllocatedGames.get(current.time_b.id) ?? 0) + 1);
+    gamesByLocal.set(candidate.local.id, (gamesByLocal.get(candidate.local.id) ?? 0) + 1);
+    registerMandatoryPresence(current, candidate.dia);
+    if (input.parametros.modo_ordem === "agrupar_categoria") {
+      const groupKey = keyByModeAndCategory(current.modalidade_id, current.categoria);
+      if (!preferredLocalByGroup.has(groupKey)) {
+        preferredLocalByGroup.set(groupKey, candidate.local.id);
+      }
+      const timeLocalKey = timelineKey(candidate.dia, candidate.local.id);
+      lastGroupByTimeline.set(timeLocalKey, groupKey);
+      lastModalityByTimeline.set(timeLocalKey, current.modalidade_id);
+    }
+
+    allocated.push({
+      confronto_id: current.id,
+      confronto: current,
+      dia: candidate.dia,
+      local_id: candidate.local.id,
+      nome_quadra: candidate.local.nome,
+      inicio: candidate.inicio,
+      fim: candidate.fim,
+      span: candidate.span,
+      score: Number(candidate.score.toFixed(2)),
+    });
   };
 
   let pendingMatches = [...matches];
   let recentTeamIds: Set<string> | undefined;
   const deferredAttempts = new Map<string, number>();
+
+  if (mandatoryPresenceDays.length > 0) {
+    for (const day of mandatoryPresenceDays) {
+      for (const [categoryToken, categoryLabel] of categoriesByToken.entries()) {
+        const missingDays = getMissingMandatoryDaysForCategory(categoryLabel);
+        if (!missingDays.includes(day)) {
+          continue;
+        }
+
+        const candidatesForCategory = sortMatchesByMode(
+          pendingMatches.filter((match) => normalizeTextKey(match.categoria) === categoryToken),
+          input.parametros.modo_ordem,
+          teamAllocatedGames,
+          input.parametros.descanso_minimo > 0 ? recentTeamIds : undefined,
+        );
+
+        if (candidatesForCategory.length === 0) {
+          warnings.push(
+            `Presenca obrigatoria nao atendida para categoria "${categoryLabel}" no dia "${day}": sem confrontos disponiveis.`,
+          );
+          continue;
+        }
+
+        let allocatedInMandatoryDay = false;
+        let failureReason = "Sem candidato viavel.";
+        for (const candidateMatch of candidatesForCategory) {
+          const { candidate, reason } = findBestCandidate(
+            candidateMatch,
+            new Set([day]),
+          );
+          if (!candidate) {
+            failureReason = reason;
+            continue;
+          }
+
+          pendingMatches = pendingMatches.filter((m) => m.id !== candidateMatch.id);
+          applyAllocation(candidateMatch, candidate);
+          recentTeamIds = new Set([candidateMatch.time_a.id, candidateMatch.time_b.id]);
+          allocatedInMandatoryDay = true;
+          break;
+        }
+
+        if (!allocatedInMandatoryDay) {
+          warnings.push(
+            `Presenca obrigatoria nao atendida para categoria "${categoryLabel}" no dia "${day}": ${failureReason}`,
+          );
+        }
+      }
+    }
+  }
 
   const isTemporaryPhaseBlock = (reason: string): boolean =>
     reason.includes("Aguardando termino") || reason.includes("fase anterior");
@@ -1107,53 +1304,7 @@ export const buildSchedulePreview = (input: SchedulingInput): SchedulingResult =
 
     deferredAttempts.delete(current.id);
 
-    const localCells = grid[candidate.dia][candidate.local.id];
-    localCells[candidate.startSlotIndex] = {
-      tipo: "confronto",
-      confronto: current,
-      dia: candidate.dia,
-      inicio: candidate.inicio,
-      fim: candidate.fim,
-      nome_quadra: candidate.local.nome,
-      local_id: candidate.local.id,
-      span: candidate.span,
-    };
-    for (let i = candidate.startSlotIndex + 1; i < candidate.endSlotIndexExclusive; i += 1) {
-      localCells[i] = { tipo: "continua" };
-    }
-
-    getTeamDayAllocations(current.time_a.id, candidate.dia).push({
-      inicio: candidate.inicio,
-      fim: candidate.fim,
-    });
-    getTeamDayAllocations(current.time_b.id, candidate.dia).push({
-      inicio: candidate.inicio,
-      fim: candidate.fim,
-    });
-    teamAllocatedGames.set(current.time_a.id, (teamAllocatedGames.get(current.time_a.id) ?? 0) + 1);
-    teamAllocatedGames.set(current.time_b.id, (teamAllocatedGames.get(current.time_b.id) ?? 0) + 1);
-    gamesByLocal.set(candidate.local.id, (gamesByLocal.get(candidate.local.id) ?? 0) + 1);
-    if (input.parametros.modo_ordem === "agrupar_categoria") {
-      const groupKey = keyByModeAndCategory(current.modalidade_id, current.categoria);
-      if (!preferredLocalByGroup.has(groupKey)) {
-        preferredLocalByGroup.set(groupKey, candidate.local.id);
-      }
-      const timeLocalKey = timelineKey(candidate.dia, candidate.local.id);
-      lastGroupByTimeline.set(timeLocalKey, groupKey);
-      lastModalityByTimeline.set(timeLocalKey, current.modalidade_id);
-    }
-
-    allocated.push({
-      confronto_id: current.id,
-      confronto: current,
-      dia: candidate.dia,
-      local_id: candidate.local.id,
-      nome_quadra: candidate.local.nome,
-      inicio: candidate.inicio,
-      fim: candidate.fim,
-      span: candidate.span,
-      score: Number(candidate.score.toFixed(2)),
-    });
+    applyAllocation(current, candidate);
     recentTeamIds = new Set([current.time_a.id, current.time_b.id]);
   }
 
@@ -1204,6 +1355,9 @@ export const buildSchedulePreview = (input: SchedulingInput): SchedulingResult =
       input.parametros.modo_encaixe,
     );
     const fim = inicio + durationUsed;
+    if (!isInsideCategoryWindow(item.confronto.categoria, item.dia, inicio, fim)) {
+      return { canPlace: false, inicio: 0, fim: 0 };
+    }
 
     const intervalsA = getTeamDayAllocations(item.confronto.time_a.id, item.dia);
     const intervalsB = getTeamDayAllocations(item.confronto.time_b.id, item.dia);

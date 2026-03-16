@@ -49,6 +49,17 @@ export interface BlockingInput {
   motivo: string;
 }
 
+export interface CategoryWindowRestrictionInput {
+  categoria: string;
+  dias: string[];
+  inicio_min: number;
+  fim_min: number;
+}
+
+export interface MandatoryCategoryPresenceInput {
+  dias: string[];
+}
+
 export interface SchedulingParamsInput {
   descanso_minimo: number;
   // Deprecated: formato agora deve ser definido por modalidade.
@@ -101,6 +112,8 @@ export interface SchedulingInput {
   modalidades: ModalityInput[];
   locais: LocalInput[];
   bloqueios: BlockingInput[];
+  restricoes_categoria?: CategoryWindowRestrictionInput[];
+  presenca_categorias?: MandatoryCategoryPresenceInput;
   competicao: CompetitionConfigInput;
   parametros: SchedulingParamsInput;
 }

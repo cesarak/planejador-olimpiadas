@@ -42,6 +42,15 @@ const blockingSchema = zod_1.z.object({
     fim: zod_1.z.number().int().min(1).max(1440),
     motivo: zod_1.z.string().min(1),
 });
+const categoryWindowSchema = zod_1.z.object({
+    categoria: zod_1.z.string().min(1),
+    dias: zod_1.z.array(zod_1.z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).min(1),
+    inicio_min: zod_1.z.number().int().min(0).max(1439),
+    fim_min: zod_1.z.number().int().min(1).max(1440),
+});
+const mandatoryCategoryPresenceSchema = zod_1.z.object({
+    dias: zod_1.z.array(zod_1.z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).default([]),
+});
 const competitionSchema = zod_1.z.object({
     inicio_min: zod_1.z.number().int().min(0).max(1439),
     fim_min: zod_1.z.number().int().min(1).max(1440),
@@ -87,6 +96,10 @@ const schedulingPayloadSchema = zod_1.z.object({
     modalidades: zod_1.z.array(modalitySchema).min(1),
     locais: zod_1.z.array(localSchema).min(1),
     bloqueios: zod_1.z.array(blockingSchema).default([]),
+    restricoes_categoria: zod_1.z.array(categoryWindowSchema).default([]),
+    presenca_categorias: mandatoryCategoryPresenceSchema
+        .optional()
+        .default({ dias: [] }),
     competicao: competitionSchema,
     parametros: paramsSchema,
     persistencia: zod_1.z
@@ -177,6 +190,28 @@ const registerSchedulingRoutes = async (app) => {
                 bloqueio: invalidBlocking,
             });
         }
+        const invalidCategoryWindow = parsed.data.restricoes_categoria.find((restriction) => restriction.fim_min <= restriction.inicio_min);
+        if (invalidCategoryWindow) {
+            return reply.status(400).send({
+                message: "Restricao de categoria invalida: fim_min deve ser maior que inicio_min.",
+                restricao: invalidCategoryWindow,
+            });
+        }
+        const allowedDays = new Set(parsed.data.competicao.dias);
+        const restrictionWithInvalidDay = parsed.data.restricoes_categoria.find((restriction) => restriction.dias.some((day) => !allowedDays.has(day)));
+        if (restrictionWithInvalidDay) {
+            return reply.status(400).send({
+                message: "Restricao de categoria contem dia fora do periodo da competicao.",
+                restricao: restrictionWithInvalidDay,
+            });
+        }
+        const invalidMandatoryPresenceDay = (parsed.data.presenca_categorias?.dias ?? []).find((day) => !allowedDays.has(day));
+        if (invalidMandatoryPresenceDay) {
+            return reply.status(400).send({
+                message: "Presenca obrigatoria por categoria contem dia fora do periodo da competicao.",
+                dia: invalidMandatoryPresenceDay,
+            });
+        }
         const result = (0, engine_1.buildSchedulePreview)(parsed.data);
         const persistencia = {
             ...parsed.data.persistencia,
@@ -196,6 +231,7 @@ const registerSchedulingRoutes = async (app) => {
                         modalidades: parsed.data.modalidades,
                         locais: parsed.data.locais,
                         bloqueios: parsed.data.bloqueios,
+                        presenca_categorias: parsed.data.presenca_categorias,
                         competicao: parsed.data.competicao,
                         parametros: parsed.data.parametros,
                     },
