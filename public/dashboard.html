@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
@@ -20,8 +20,15 @@
       }
       body {
         margin: 0;
-        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
-          Helvetica, Arial, sans-serif;
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Helvetica,
+          Arial,
+          sans-serif;
         background: linear-gradient(180deg, #0f1220 0%, #0b0e1a 100%);
         color: var(--text);
       }
@@ -493,6 +500,26 @@
             <label for="data_fim">Data de termino</label>
             <input id="data_fim" type="date" onchange="updateDaysPreview()" />
           </div>
+          <div class="field" style="min-width: 240px">
+            <label for="bloquear_domingos">Restricao de domingos</label>
+            <label
+              style="
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                margin-top: 6px;
+                font-weight: 500;
+              "
+            >
+              <input
+                id="bloquear_domingos"
+                type="checkbox"
+                checked
+                onchange="updateDaysPreview()"
+              />
+              Ignorar jogos aos domingos
+            </label>
+          </div>
           <div class="field" style="min-width: 220px">
             <label>Datas da Competição</label>
             <div id="dias_preview" class="small">1 dia selecionado.</div>
@@ -611,7 +638,7 @@
       </div>
 
       <div class="card">
-        <h2>Restricoes por Categoria</h2>
+        <h2>Restricoes por Série</h2>
         <p class="small">
           Defina em quais dias e horarios cada categoria pode jogar.
         </p>
@@ -872,18 +899,46 @@
         return Array.from(select.selectedOptions).map((option) => option.value);
       }
 
-      function getCompetitionDaysSelection() {
-        return buildDaysFromRange(
+      function isSunday(isoDate) {
+        return new Date(isoDate + "T00:00:00").getDay() === 0;
+      }
+
+      function shouldBlockSundayMatches() {
+        const input = document.getElementById("bloquear_domingos");
+        return input ? input.checked : true;
+      }
+
+      function inferSundayBlockFromDays(days) {
+        if (!Array.isArray(days) || days.length === 0) {
+          return true;
+        }
+        const fullRange = buildDaysFromRange(days[0], days[days.length - 1]);
+        const sundaysInRange = fullRange.filter(isSunday);
+        if (sundaysInRange.length === 0) {
+          return true;
+        }
+        const sundaySet = new Set(sundaysInRange);
+        const hasSundayInSelection = days.some((day) => sundaySet.has(day));
+        return !hasSundayInSelection;
+      }
+
+      function getCompetitionDaysSelection(options = {}) {
+        const includeSundays = Boolean(options.includeSundays);
+        const days = buildDaysFromRange(
           document.getElementById("data_inicio").value,
-          document.getElementById("data_fim").value
+          document.getElementById("data_fim").value,
         );
+        if (includeSundays || !shouldBlockSundayMatches()) {
+          return days;
+        }
+        return days.filter((day) => !isSunday(day));
       }
 
       function updateModalityCategorySelectors() {
         const categories = getUniqueTeamCategories();
         document
           .querySelectorAll(
-            "#modalidades_table tbody tr select[data-k='categorias']"
+            "#modalidades_table tbody tr select[data-k='categorias']",
           )
           .forEach((select) => {
             const previousSelection = new Set(getSelectedMultiValues(select));
@@ -902,7 +957,7 @@
         const categories = getUniqueTeamCategories();
         document
           .querySelectorAll(
-            "#restricoes_categoria_table tbody tr select[data-k='categoria']"
+            "#restricoes_categoria_table tbody tr select[data-k='categoria']",
           )
           .forEach((select) => {
             const previous = select.value;
@@ -923,7 +978,7 @@
         const days = getCompetitionDaysSelection();
         document
           .querySelectorAll(
-            "#restricoes_categoria_table tbody tr select[data-k='dias']"
+            "#restricoes_categoria_table tbody tr select[data-k='dias']",
           )
           .forEach((select) => {
             const previousSelection = new Set(getSelectedMultiValues(select));
@@ -931,7 +986,7 @@
               .map((day) => {
                 const selected = previousSelection.has(day) ? "selected" : "";
                 return `<option value="${day}" ${selected}>${formatDateBR(
-                  day
+                  day,
                 )}</option>`;
               })
               .join("");
@@ -949,7 +1004,7 @@
           .map((day) => {
             const selected = previousSelection.has(day) ? "selected" : "";
             return `<option value="${day}" ${selected}>${formatDateBR(
-              day
+              day,
             )}</option>`;
           })
           .join("");
@@ -986,7 +1041,7 @@
         const categoryInput = tr.querySelector("[data-k='categoria']");
         categoryInput.addEventListener(
           "input",
-          refreshCategoryDependentSelectors
+          refreshCategoryDependentSelectors,
         );
         refreshCategoryDependentSelectors();
       }
@@ -1031,7 +1086,7 @@
         updateModalityCategorySelectors();
         const multi = tr.querySelector("[data-k='categorias']");
         const selected = new Set(
-          data.categorias || data.categorias_eliminatoria || []
+          data.categorias || data.categorias_eliminatoria || [],
         );
         Array.from(multi.options).forEach((option) => {
           option.selected = selected.has(option.value);
@@ -1056,7 +1111,7 @@
             : data.fim || "12:00";
 
         const tbody = document.querySelector(
-          "#restricoes_categoria_table tbody"
+          "#restricoes_categoria_table tbody",
         );
         const tr = document.createElement("tr");
         tr.innerHTML = `
@@ -1077,7 +1132,7 @@
                 .map((day) => {
                   const selected = selectedDays.has(day) ? "selected" : "";
                   return `<option value="${day}" ${selected}>${formatDateBR(
-                    day
+                    day,
                   )}</option>`;
                 })
                 .join("")}
@@ -1097,10 +1152,10 @@
           <td><input data-k="id" value="${data.id || randomId("local")}" /></td>
           <td><input data-k="nome" value="${data.nome || ""}" /></td>
           <td><input data-k="modalidades_permitidas" value="${arrayOrStarToCsv(
-            data.modalidades_permitidas || "*"
+            data.modalidades_permitidas || "*",
           )}" /></td>
           <td><input data-k="categorias_permitidas" value="${arrayOrStarToCsv(
-            data.categorias_permitidas || "*"
+            data.categorias_permitidas || "*",
           )}" /></td>
           <td><button type="button" class="danger" onclick="this.closest('tr').remove()">Remover</button></td>
         `;
@@ -1149,13 +1204,13 @@
         const modalidades = readRows("#modalidades_table tbody tr", (tr) => {
           const formato = tr.querySelector("[data-k='formato']").value;
           const categorias = getSelectedMultiValues(
-            tr.querySelector("[data-k='categorias']")
+            tr.querySelector("[data-k='categorias']"),
           );
           return {
             id: tr.querySelector("[data-k='id']").value.trim(),
             nome: tr.querySelector("[data-k='nome']").value.trim(),
             duracao_min: Number(
-              tr.querySelector("[data-k='duracao_min']").value
+              tr.querySelector("[data-k='duracao_min']").value,
             ),
             regra_genero: tr.querySelector("[data-k='regra_genero']").value,
             formato,
@@ -1167,17 +1222,17 @@
           id: tr.querySelector("[data-k='id']").value.trim(),
           nome: tr.querySelector("[data-k='nome']").value.trim(),
           modalidades_permitidas: csvToArrayOrStar(
-            tr.querySelector("[data-k='modalidades_permitidas']").value
+            tr.querySelector("[data-k='modalidades_permitidas']").value,
           ),
           categorias_permitidas: csvToArrayOrStar(
-            tr.querySelector("[data-k='categorias_permitidas']").value
+            tr.querySelector("[data-k='categorias_permitidas']").value,
           ),
         }));
 
         const bloqueios = readRows("#bloqueios_table tbody tr", (tr) => ({
           dia: tr.querySelector("[data-k='dia']").value.trim(),
           inicio: inputTimeToMinutes(
-            tr.querySelector("[data-k='inicio']").value
+            tr.querySelector("[data-k='inicio']").value,
           ),
           fim: inputTimeToMinutes(tr.querySelector("[data-k='fim']").value),
           motivo: tr.querySelector("[data-k='motivo']").value.trim(),
@@ -1187,39 +1242,36 @@
           "#restricoes_categoria_table tbody tr",
           (tr) => {
             const dias = getSelectedMultiValues(
-              tr.querySelector("[data-k='dias']")
+              tr.querySelector("[data-k='dias']"),
             );
             return {
               categoria: tr.querySelector("[data-k='categoria']").value.trim(),
               dias,
               inicio_min: inputTimeToMinutes(
-                tr.querySelector("[data-k='inicio_min']").value
+                tr.querySelector("[data-k='inicio_min']").value,
               ),
               fim_min: inputTimeToMinutes(
-                tr.querySelector("[data-k='fim_min']").value
+                tr.querySelector("[data-k='fim_min']").value,
               ),
             };
-          }
+          },
         ).filter((item) => item.categoria && item.dias.length > 0);
         const presencaCategoriasDias = getSelectedMultiValues(
-          document.getElementById("presenca_categorias_dias")
+          document.getElementById("presenca_categorias_dias"),
         );
 
         const competicao = {
           inicio_min: inputTimeToMinutes(
-            document.getElementById("inicio_min").value
+            document.getElementById("inicio_min").value,
           ),
           fim_min: inputTimeToMinutes(document.getElementById("fim_min").value),
           passo_grid: Number(document.getElementById("passo_grid").value),
-          dias: buildDaysFromRange(
-            document.getElementById("data_inicio").value,
-            document.getElementById("data_fim").value
-          ),
+          dias: getCompetitionDaysSelection(),
         };
 
         const parametros = {
           descanso_minimo: Number(
-            document.getElementById("descanso_minimo").value
+            document.getElementById("descanso_minimo").value,
           ),
           modo_encaixe: document.getElementById("modo_encaixe").value,
           modo_ordem: document.getElementById("modo_ordem").value,
@@ -1250,6 +1302,9 @@
           competicao,
           parametros,
           persistencia,
+          ui: {
+            bloquear_domingos: shouldBlockSundayMatches(),
+          },
         };
       }
 
@@ -1291,7 +1346,7 @@
             "level-excelente",
             "level-boa",
             "level-atencao",
-            "level-critica"
+            "level-critica",
           );
           return;
         } else {
@@ -1306,7 +1361,7 @@
           "level-excelente",
           "level-boa",
           "level-atencao",
-          "level-critica"
+          "level-critica",
         );
         if (!Number.isFinite(occupancy)) {
           alertBox.classList.add("hidden");
@@ -1318,22 +1373,22 @@
         if (occupancy >= 95) {
           alertBox.classList.add("level-excelente");
           alertBox.textContent = `Ocupacao excelente (${occupancy.toFixed(
-            2
+            2,
           )}%). Grade muito bem otimizada dentro da janela util.`;
         } else if (occupancy >= 80) {
           alertBox.classList.add("level-boa");
           alertBox.textContent = `Ocupacao boa (${occupancy.toFixed(
-            2
+            2,
           )}%). Pequenos ajustes podem elevar o aproveitamento das quadras.`;
         } else if (occupancy >= 60) {
           alertBox.classList.add("level-atencao");
           alertBox.textContent = `Ocupacao em atencao (${occupancy.toFixed(
-            2
+            2,
           )}%). Existem periodos ociosos relevantes antes da ultima partida.`;
         } else {
           alertBox.classList.add("level-critica");
           alertBox.textContent = `Ocupacao critica (${occupancy.toFixed(
-            2
+            2,
           )}%). O cronograma esta com baixa eficiencia e requer replanejamento.`;
         }
       }
@@ -1343,11 +1398,12 @@
         const marker = "Presenca obrigatoria nao atendida para categoria";
         return warnings
           .filter(
-            (warning) => typeof warning === "string" && warning.includes(marker)
+            (warning) =>
+              typeof warning === "string" && warning.includes(marker),
           )
           .map((warning) => {
             const parsed = warning.match(
-              /categoria "(.+)" no dia "(\d{4}-\d{2}-\d{2})":\s*(.+)$/i
+              /categoria "(.+)" no dia "(\d{4}-\d{2}-\d{2})":\s*(.+)$/i,
             );
             if (!parsed) {
               return {
@@ -1412,13 +1468,13 @@
             const fase = confronto?.fase || "-";
             const motivo = item?.motivo || "Motivo nao informado.";
             return `<li><strong>${escapeHtml(
-              modalidade
+              modalidade,
             )}</strong> | ${escapeHtml(categoria)} | ${escapeHtml(
-              fase
+              fase,
             )}: ${escapeHtml(timeA)} x ${escapeHtml(
-              timeB
+              timeB,
             )}<br/><span class="small">Motivo: ${escapeHtml(
-              motivo
+              motivo,
             )}</span></li>`;
           })
           .join("");
@@ -1449,12 +1505,12 @@
           .map(
             (item) =>
               `<li><strong>${escapeHtml(
-                item.categoria
+                item.categoria,
               )}</strong> | Dia: ${escapeHtml(
-                formatDateBR(item.dia)
+                formatDateBR(item.dia),
               )}<br/><span class="small">Motivo: ${escapeHtml(
-                item.motivo
-              )}</span></li>`
+                item.motivo,
+              )}</span></li>`,
           )
           .join("");
 
@@ -1469,7 +1525,7 @@
         document.getElementById("response_json").textContent = JSON.stringify(
           obj,
           null,
-          2
+          2,
         );
       }
 
@@ -1482,7 +1538,7 @@
 
         const associations = result.associacoes_chaves;
         const futureMatches = (result.confrontos || []).filter(
-          (m) => m.tipo_fase === "futuro"
+          (m) => m.tipo_fase === "futuro",
         );
 
         if (associations.length === 0 && futureMatches.length === 0) {
@@ -1522,12 +1578,12 @@
                 .map(
                   (t) =>
                     `<li>${escapeHtml(t.team_nome)} (${escapeHtml(
-                      t.categoria
-                    )} | ${escapeHtml(t.genero)})</li>`
+                      t.categoria,
+                    )} | ${escapeHtml(t.genero)})</li>`,
                 )
                 .join("");
               return `<div class="bracket-box"><h4>Chave ${escapeHtml(
-                ch
+                ch,
               )}</h4><ul class="bracket-list">${teams}</ul></div>`;
             })
             .join("");
@@ -1537,8 +1593,8 @@
             .map(
               (m) =>
                 `<li><strong>${escapeHtml(m.fase)}:</strong> ${escapeHtml(
-                  m.time_a.nome
-                )} x ${escapeHtml(m.time_b.nome)}</li>`
+                  m.time_a.nome,
+                )} x ${escapeHtml(m.time_b.nome)}</li>`,
             )
             .join("");
 
@@ -1643,27 +1699,37 @@
         updateMandatoryPresenceDaySelector();
         const start = document.getElementById("data_inicio").value;
         const end = document.getElementById("data_fim").value;
-        const days = buildDaysFromRange(start, end);
+        const allDays = getCompetitionDaysSelection({ includeSundays: true });
+        const days = getCompetitionDaysSelection();
         const preview = document.getElementById("dias_preview");
 
         if (!start || !end) {
           preview.textContent = "Selecione data de inicio e termino.";
           return;
         }
-        if (days.length === 0) {
+        if (allDays.length === 0) {
           preview.textContent =
             "Intervalo invalido. A data de termino deve ser maior ou igual a data de inicio.";
           return;
         }
+        if (days.length === 0) {
+          preview.textContent =
+            "Nenhum dia util para agendamento: todos os dias do intervalo sao domingo e estao bloqueados.";
+          return;
+        }
+        const ignoredSundays =
+          shouldBlockSundayMatches() && allDays.length > days.length
+            ? ` (${allDays.length - days.length} domingo(s) ignorado(s))`
+            : "";
         if (days.length <= 5) {
           preview.textContent = `${days.length} dia(s): ${days
             .map(formatDateBR)
-            .join(", ")}`;
+            .join(", ")}${ignoredSundays}`;
           return;
         }
         preview.textContent = `${days.length} dia(s): ${formatDateBR(
-          days[0]
-        )} ate ${formatDateBR(days[days.length - 1])}`;
+          days[0],
+        )} ate ${formatDateBR(days[days.length - 1])}${ignoredSundays}`;
       }
 
       function minutesToHHMM(minutes) {
@@ -1695,7 +1761,7 @@
         }
         if (cell.tipo === "bloqueado") {
           return `<div class="cell-bloqueado">Bloqueado<br/><span class="small">${escapeHtml(
-            cell.motivo || ""
+            cell.motivo || "",
           )}</span></div>`;
         }
         if (cell.tipo === "continua") {
@@ -1706,7 +1772,7 @@
           const tb = escapeHtml(cell.confronto?.time_b?.nome || "?");
           const mod = escapeHtml(cell.confronto?.modalidade || "");
           return `<div class="cell-confronto"><strong>${ta} x ${tb}</strong><br/><span class="small">${mod} | ${minutesToHHMM(
-            cell.inicio
+            cell.inicio,
           )}-${minutesToHHMM(cell.fim)}</span></div>`;
         }
         return '<span class="cell-vazio">-</span>';
@@ -1738,7 +1804,7 @@
         const firstLine = dayItem.linhas[0];
         const allCourtCells = firstLine?.celulas || [];
         const selectedCourts = allCourtCells.filter((c) =>
-          selectedCourt ? c.nome_quadra === selectedCourt : true
+          selectedCourt ? c.nome_quadra === selectedCourt : true,
         );
 
         if (selectedCourts.length === 0) {
@@ -1747,7 +1813,7 @@
 
         const courtMeta = selectedCourts.map((court) => {
           const index = allCourtCells.findIndex(
-            (c) => c.local_id === court.local_id
+            (c) => c.local_id === court.local_id,
           );
           return {
             index,
@@ -1771,12 +1837,12 @@
                 !searchTerm || cellMatchesSearch(cell, searchTerm);
               const ta = escapeHtml(cell.confronto?.time_a?.nome || "?");
               const taCat = escapeHtml(
-                cell.confronto?.time_a?.categoria || "-"
+                cell.confronto?.time_a?.categoria || "-",
               );
               const taGen = escapeHtml(cell.confronto?.time_a?.genero || "-");
               const tb = escapeHtml(cell.confronto?.time_b?.nome || "?");
               const tbCat = escapeHtml(
-                cell.confronto?.time_b?.categoria || "-"
+                cell.confronto?.time_b?.categoria || "-",
               );
               const tbGen = escapeHtml(cell.confronto?.time_b?.genero || "-");
               const mod = escapeHtml(cell.confronto?.modalidade || "");
@@ -1784,8 +1850,8 @@
                 <div class="merged-content">
                   <div class="merged-title merged-vs">${ta} (${taCat} | ${taGen}) x ${tb} (${tbCat} | ${tbGen})</div>
                   <span class="merged-meta">${mod} | ${minutesToHHMM(
-                cell.inicio
-              )}-${minutesToHHMM(cell.fim)}</span>
+                    cell.inicio,
+                  )}-${minutesToHHMM(cell.fim)}</span>
                 </div>
               `;
               matrix[row][court.local_id] = {
@@ -1823,10 +1889,10 @@
                   <div class="merged-content">
                     <div class="merged-title merged-blocked">Bloqueado</div>
                     <span class="merged-meta">${escapeHtml(
-                      cell.motivo || ""
+                      cell.motivo || "",
                     )}</span>
                     <span class="small">${minutesToHHMM(
-                      blockStart
+                      blockStart,
                     )}-${minutesToHHMM(blockEnd)}</span>
                   </div>
                 `,
@@ -1866,7 +1932,7 @@
         const rowsHtml = dayItem.linhas
           .map((linha, rowIndex) => {
             const timeCell = `<td>${minutesToHHMM(
-              linha.inicio
+              linha.inicio,
             )} - ${minutesToHHMM(linha.fim)}</td>`;
             const courtCells = courtMeta
               .map((court) => {
@@ -1931,12 +1997,12 @@
           const mergedTable = renderMergedDayTable(
             dayItem,
             selectedCourt,
-            searchTerm
+            searchTerm,
           );
           return `
             <div class="day-grid">
               <h3 style="margin:0 0 8px;">Dia: ${escapeHtml(
-                formatDateBR(dayItem.dia)
+                formatDateBR(dayItem.dia),
               )}</h3>
               ${mergedTable}
             </div>
@@ -2015,7 +2081,7 @@
         filtered.forEach((dayItem) => {
           (dayItem.linhas || []).forEach((linha) => {
             const cells = (linha.celulas || []).filter((c) =>
-              selectedCourt ? c.nome_quadra === selectedCourt : true
+              selectedCourt ? c.nome_quadra === selectedCourt : true,
             );
             if (
               searchTerm &&
@@ -2084,7 +2150,7 @@
         downloadTextFile(
           "grade-agendamento.csv",
           csv,
-          "text/csv;charset=utf-8;"
+          "text/csv;charset=utf-8;",
         );
       }
 
@@ -2109,12 +2175,12 @@
           const mergedTable = renderMergedDayTable(
             dayItem,
             selectedCourt,
-            searchTerm.toLowerCase()
+            searchTerm.toLowerCase(),
           );
           return `
             <div class="day-grid">
               <h3 style="margin:0 0 8px;">Dia: ${escapeHtml(
-                formatDateBR(dayItem.dia)
+                formatDateBR(dayItem.dia),
               )}</h3>
               ${mergedTable}
             </div>
@@ -2212,14 +2278,16 @@
         const data = JSON.parse(raw);
 
         document.getElementById("inicio_min").value = minutesToInputTime(
-          data.competicao?.inicio_min ?? 480
+          data.competicao?.inicio_min ?? 480,
         );
         document.getElementById("fim_min").value = minutesToInputTime(
-          data.competicao?.fim_min ?? 720
+          data.competicao?.fim_min ?? 720,
         );
         document.getElementById("passo_grid").value =
           data.competicao?.passo_grid ?? 5;
         const dias = data.competicao?.dias || [];
+        document.getElementById("bloquear_domingos").checked =
+          data.ui?.bloquear_domingos ?? inferSundayBlockFromDays(dias);
         if (dias.length > 0) {
           document.getElementById("data_inicio").value = dias[0];
           document.getElementById("data_fim").value = dias[dias.length - 1];
@@ -2238,7 +2306,7 @@
           data.parametros?.modo_ordem ?? "dificil_primeiro";
 
         document.getElementById("salvar").value = String(
-          data.persistencia?.salvar ?? false
+          data.persistencia?.salvar ?? false,
         );
         document.getElementById("tenantId").value =
           data.persistencia?.tenantId || "";
@@ -2265,7 +2333,7 @@
         updateMandatoryPresenceDaySelector();
         const presenceDays = data.presenca_categorias?.dias || [];
         const presenceSelect = document.getElementById(
-          "presenca_categorias_dias"
+          "presenca_categorias_dias",
         );
         Array.from(presenceSelect.options).forEach((option) => {
           option.selected = presenceDays.includes(option.value);
