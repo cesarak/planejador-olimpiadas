@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: planejador_olimpiadas
     ports:
-      - "5432:5432"
+      - "${POSTGRES_HOST_PORT:-5433}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -16,6 +16,43 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: planejador-api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://user:password@db:5432/planejador_olimpiadas?schema=public
+      PORT: 3333
+      AUTH_SECRET: ${AUTH_SECRET:-troque-esta-chave-em-producao}
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3333/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: planejador-web
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "8080:80"
 
 volumes:
   postgres_data:

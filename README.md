@@ -28,19 +28,25 @@ npm install
 npm run dev
 ```
 
-## Banco de dados local (Docker Compose)
+## Docker Compose (web + api + banco)
 
-Suba o PostgreSQL local:
+Suba todos os servicos:
 
 ```bash
-docker compose up -d
+docker compose up --build -d
 docker compose ps
 ```
+
+Acesse:
+
+- Web: `http://localhost:8080`
+- API health: `http://localhost:8080/health`
+- PostgreSQL (host): `localhost:5433` (altere com `POSTGRES_HOST_PORT`)
 
 Para acompanhar logs:
 
 ```bash
-docker compose logs -f db
+docker compose logs -f
 ```
 
 Para parar/remover os containers:
@@ -49,7 +55,7 @@ Para parar/remover os containers:
 docker compose down
 ```
 
-Para habilitar persistencia no banco, gere o client e rode migracoes:
+Se for rodar fora do Docker, gere o client e rode migracoes:
 
 ```bash
 npm run prisma:generate
